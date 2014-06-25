@@ -1,4 +1,4 @@
-## File.bbcode
+[b][u][i]File.bbcode[/i][/u][/b]
 
 :cool:
 

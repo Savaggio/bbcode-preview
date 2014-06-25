@@ -50,7 +50,7 @@ describe "BBCode preview package", ->
     describe "when the editor's path does not exist", ->
       it "splits the current pane to the right with a bbcode preview for the file", ->
         waitsForPromise ->
-          atom.workspace.open("new.bbcode")
+          atom.workspace.open("new.txt")
 
         runs ->
           atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
@@ -113,7 +113,7 @@ describe "BBCode preview package", ->
     describe "when the path contains accented characters", ->
       it "renders the preview", ->
         waitsForPromise ->
-          atom.workspace.open("subdir/áccéntéd.md")
+          atom.workspace.open("subdir/áccéntéd.txt")
 
         runs ->
           atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
@@ -138,7 +138,7 @@ describe "BBCode preview package", ->
       atom.workspaceView.attachToDom()
 
       waitsForPromise ->
-        atom.workspace.open("subdir/file.bbcode")
+        atom.workspace.open("subdir/file.txt")
 
       runs ->
         atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
@@ -222,7 +222,7 @@ describe "BBCode preview package", ->
   describe "when the bbcode preview view is requested by file URI", ->
     it "opens a preview editor and watches the file for changes", ->
       waitsForPromise "atom.workspace.open promise to be resolved", ->
-        atom.workspace.open("bbcode-preview://#{atom.project.resolve('subdir/file.bbcode')}")
+        atom.workspace.open("bbcode-preview://#{atom.project.resolve('subdir/file.txt')}")
 
       runs ->
         expect(BBCodePreviewView::renderBBCode.callCount).toBeGreaterThan 0
@@ -242,7 +242,7 @@ describe "BBCode preview package", ->
       atom.workspaceView.attachToDom()
 
       waitsForPromise ->
-        atom.workspace.open("subdir/file.bbcode")
+        atom.workspace.open("subdir/file.txt")
 
       runs ->
         spyOn(atom.workspace, 'open').andCallThrough()
@@ -254,7 +254,7 @@ describe "BBCode preview package", ->
       titleChangedCallback = jasmine.createSpy('titleChangedCallback')
 
       waitsForPromise ->
-        atom.workspace.open("subdir/file.bbcode")
+        atom.workspace.open("subdir/file.txt")
 
       runs ->
         atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
@@ -265,11 +265,11 @@ describe "BBCode preview package", ->
       runs ->
         [editorPane, previewPane] = atom.workspaceView.getPaneViews()
         preview = previewPane.getActiveItem()
-        expect(preview.getTitle()).toBe 'file.bbcode Preview'
+        expect(preview.getTitle()).toBe 'file.txt Preview'
 
         titleChangedCallback.reset()
         preview.one('title-changed', titleChangedCallback)
-        fs.renameSync(atom.workspace.getActiveEditor().getPath(), path.join(path.dirname(atom.workspace.getActiveEditor().getPath()), 'file2.md'))
+        fs.renameSync(atom.workspace.getActiveEditor().getPath(), path.join(path.dirname(atom.workspace.getActiveEditor().getPath()), 'file2.txt'))
 
       waitsFor ->
         titleChangedCallback.callCount is 1
@@ -286,26 +286,28 @@ describe "BBCode preview package", ->
   describe "when bbcode-preview:copy-html is triggered", ->
     it "copies the HTML to the clipboard", ->
       waitsForPromise ->
-        atom.workspace.open("subdir/simple.md")
+        atom.workspace.open("subdir/simple.txt")
 
       runs ->
         atom.workspaceView.getActiveView().trigger 'bbcode-preview:copy-html'
         expect(atom.clipboard.read()).toBe """
-          <p><em>italic</em></p>
-          <p><strong>bold</strong></p>
+          <p><i>italic</i></p>
+
+          <p><b>bold</b></p>
+
           <p>encoding \u2192 issue</p>
         """
 
         atom.workspace.getActiveEditor().setSelectedBufferRange [[0, 0], [1, 0]]
         atom.workspaceView.getActiveView().trigger 'bbcode-preview:copy-html'
         expect(atom.clipboard.read()).toBe """
-          <p><em>italic</em></p>
+          <p><i>italic</i></p>
         """
 
   describe "sanitization", ->
     it "removes script tags and attributes that commonly contain inline scripts", ->
       waitsForPromise ->
-        atom.workspace.open("subdir/evil.md")
+        atom.workspace.open("subdir/evil.txt")
 
       runs ->
         atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
@@ -317,17 +319,17 @@ describe "BBCode preview package", ->
         [editorPane, previewPane] = atom.workspaceView.getPaneViews()
         preview = previewPane.getActiveItem()
         expect(preview[0].innerHTML).toBe """
-          <p>hello</p>
-          <p></p>
-          <p>
-          <img>
+          <p>hello<br>
+          &lt;script src="index.js"&gt;&lt;/script&gt;<br>
+          &lt;script&gt;alert('rm -fr')&lt;/script&gt;<br>
+          &lt;img onload="alert('rm -rf')" onerror="alert('rm -fr')"&gt;<br>
           world</p>
         """
 
   describe "when the bbcode contains an <html> tag", ->
     it "does not throw an exception", ->
       waitsForPromise ->
-        atom.workspace.open("subdir/html-tag.md")
+        atom.workspace.open("subdir/html-tag.txt")
 
       runs ->
         atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
@@ -338,4 +340,4 @@ describe "BBCode preview package", ->
       runs ->
         [editorPane, previewPane] = atom.workspaceView.getPaneViews()
         preview = previewPane.getActiveItem()
-        expect(preview[0].innerHTML).toBe "content"
+        expect(preview[0].innerHTML).toBe "<p>&lt;html&gt;content&lt;/html&gt;</p>"
