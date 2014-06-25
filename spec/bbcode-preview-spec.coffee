@@ -3,9 +3,9 @@ path = require 'path'
 fs = require 'fs-plus'
 temp = require 'temp'
 wrench = require 'wrench'
-MarkdownPreviewView = require '../lib/markdown-preview-view'
+BBCodePreviewView = require '../lib/bbcode-preview-view'
 
-describe "Markdown preview package", ->
+describe "BBCode preview package", ->
   beforeEach ->
     fixturesPath = path.join(__dirname, 'fixtures')
     tempPath = temp.mkdirSync('atom')
@@ -15,10 +15,10 @@ describe "Markdown preview package", ->
 
     atom.workspaceView = new WorkspaceView
     atom.workspace = atom.workspaceView.model
-    spyOn(MarkdownPreviewView.prototype, 'renderMarkdown').andCallThrough()
+    spyOn(BBCodePreviewView.prototype, 'renderBBCode').andCallThrough()
 
     waitsForPromise ->
-      atom.packages.activatePackage("markdown-preview")
+      atom.packages.activatePackage("bbcode-preview")
 
     waitsForPromise ->
       atom.packages.activatePackage('language-gfm')
@@ -27,15 +27,15 @@ describe "Markdown preview package", ->
     beforeEach ->
       atom.workspaceView.attachToDom()
 
-    it "splits the current pane to the right with a markdown preview for the file", ->
+    it "splits the current pane to the right with a bbcode preview for the file", ->
       waitsForPromise ->
-        atom.workspace.open("subdir/file.markdown")
+        atom.workspace.open("subdir/file.txt")
 
       runs ->
-        atom.workspaceView.getActiveView().trigger 'markdown-preview:toggle'
+        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
 
       waitsFor ->
-        MarkdownPreviewView::renderMarkdown.callCount > 0
+        BBCodePreviewView::renderBBCode.callCount > 0
 
       runs ->
         expect(atom.workspaceView.getPaneViews()).toHaveLength 2
@@ -43,20 +43,20 @@ describe "Markdown preview package", ->
 
         expect(editorPane.items).toHaveLength 1
         preview = previewPane.getActiveItem()
-        expect(preview).toBeInstanceOf(MarkdownPreviewView)
+        expect(preview).toBeInstanceOf(BBCodePreviewView)
         expect(preview.getPath()).toBe atom.workspace.getActivePaneItem().getPath()
         expect(editorPane).toHaveFocus()
 
     describe "when the editor's path does not exist", ->
-      it "splits the current pane to the right with a markdown preview for the file", ->
+      it "splits the current pane to the right with a bbcode preview for the file", ->
         waitsForPromise ->
-          atom.workspace.open("new.markdown")
+          atom.workspace.open("new.bbcode")
 
         runs ->
-          atom.workspaceView.getActiveView().trigger 'markdown-preview:toggle'
+          atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
 
         waitsFor ->
-          MarkdownPreviewView::renderMarkdown.callCount > 0
+          BBCodePreviewView::renderBBCode.callCount > 0
 
         runs ->
           expect(atom.workspaceView.getPaneViews()).toHaveLength 2
@@ -64,20 +64,20 @@ describe "Markdown preview package", ->
 
           expect(editorPane.items).toHaveLength 1
           preview = previewPane.getActiveItem()
-          expect(preview).toBeInstanceOf(MarkdownPreviewView)
+          expect(preview).toBeInstanceOf(BBCodePreviewView)
           expect(preview.getPath()).toBe atom.workspace.getActivePaneItem().getPath()
           expect(editorPane).toHaveFocus()
 
     describe "when the editor does not have a path", ->
-      it "splits the current pane to the right with a markdown preview for the file", ->
+      it "splits the current pane to the right with a bbcode preview for the file", ->
         waitsForPromise ->
           atom.workspace.open("")
 
         runs ->
-          atom.workspaceView.getActiveView().trigger 'markdown-preview:toggle'
+          atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
 
         waitsFor ->
-          MarkdownPreviewView::renderMarkdown.callCount > 0
+          BBCodePreviewView::renderBBCode.callCount > 0
 
         runs ->
           expect(atom.workspaceView.getPaneViews()).toHaveLength 2
@@ -85,20 +85,20 @@ describe "Markdown preview package", ->
 
           expect(editorPane.items).toHaveLength 1
           preview = previewPane.getActiveItem()
-          expect(preview).toBeInstanceOf(MarkdownPreviewView)
+          expect(preview).toBeInstanceOf(BBCodePreviewView)
           expect(preview.getPath()).toBe atom.workspace.getActivePaneItem().getPath()
           expect(editorPane).toHaveFocus()
 
     describe "when the path contains a space", ->
       it "renders the preview", ->
         waitsForPromise ->
-          atom.workspace.open("subdir/file with space.md")
+          atom.workspace.open("subdir/file with space.txt")
 
         runs ->
-          atom.workspaceView.getActiveView().trigger 'markdown-preview:toggle'
+          atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
 
         waitsFor ->
-          MarkdownPreviewView::renderMarkdown.callCount > 0
+          BBCodePreviewView::renderBBCode.callCount > 0
 
         runs ->
           expect(atom.workspaceView.getPaneViews()).toHaveLength 2
@@ -106,7 +106,7 @@ describe "Markdown preview package", ->
 
           expect(editorPane.items).toHaveLength 1
           preview = previewPane.getActiveItem()
-          expect(preview).toBeInstanceOf(MarkdownPreviewView)
+          expect(preview).toBeInstanceOf(BBCodePreviewView)
           expect(preview.getPath()).toBe atom.workspace.getActivePaneItem().getPath()
           expect(editorPane).toHaveFocus()
 
@@ -116,10 +116,10 @@ describe "Markdown preview package", ->
           atom.workspace.open("subdir/áccéntéd.md")
 
         runs ->
-          atom.workspaceView.getActiveView().trigger 'markdown-preview:toggle'
+          atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
 
         waitsFor ->
-          MarkdownPreviewView::renderMarkdown.callCount > 0
+          BBCodePreviewView::renderBBCode.callCount > 0
 
         runs ->
           expect(atom.workspaceView.getPaneViews()).toHaveLength 2
@@ -127,7 +127,7 @@ describe "Markdown preview package", ->
 
           expect(editorPane.items).toHaveLength 1
           preview = previewPane.getActiveItem()
-          expect(preview).toBeInstanceOf(MarkdownPreviewView)
+          expect(preview).toBeInstanceOf(BBCodePreviewView)
           expect(preview.getPath()).toBe atom.workspace.getActivePaneItem().getPath()
           expect(editorPane).toHaveFocus()
 
@@ -138,21 +138,21 @@ describe "Markdown preview package", ->
       atom.workspaceView.attachToDom()
 
       waitsForPromise ->
-        atom.workspace.open("subdir/file.markdown")
+        atom.workspace.open("subdir/file.bbcode")
 
       runs ->
-        atom.workspaceView.getActiveView().trigger 'markdown-preview:toggle'
+        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
 
       waitsFor ->
-        MarkdownPreviewView::renderMarkdown.callCount > 0
+        BBCodePreviewView::renderBBCode.callCount > 0
 
       runs ->
         [editorPane, previewPane] = atom.workspaceView.getPaneViews()
         preview = previewPane.getActiveItem()
-        MarkdownPreviewView::renderMarkdown.reset()
+        BBCodePreviewView::renderBBCode.reset()
 
     it "closes the existing preview when toggle is triggered a second time", ->
-      atom.workspaceView.getActiveView().trigger 'markdown-preview:toggle'
+      atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
 
       [editorPane, previewPane] = atom.workspaceView.getPaneViews()
       expect(editorPane).toHaveFocus()
@@ -161,17 +161,17 @@ describe "Markdown preview package", ->
     describe "when the editor is modified", ->
       describe "when the preview is in the active pane but is not the active item", ->
         it "re-renders the preview but does not make it active", ->
-          markdownEditor = atom.workspace.getActiveEditor()
+          bbcodeEditor = atom.workspace.getActiveEditor()
           previewPane.focus()
 
           waitsForPromise ->
             atom.workspace.open()
 
           runs ->
-            markdownEditor.setText("Hey!")
+            bbcodeEditor.setText("Hey!")
 
           waitsFor ->
-            MarkdownPreviewView::renderMarkdown.callCount > 0
+            BBCodePreviewView::renderBBCode.callCount > 0
 
           runs ->
             expect(previewPane).toHaveFocus()
@@ -189,15 +189,15 @@ describe "Markdown preview package", ->
             atom.workspace.getActiveEditor().setText("Hey!")
 
           waitsFor ->
-            MarkdownPreviewView::renderMarkdown.callCount > 0
+            BBCodePreviewView::renderBBCode.callCount > 0
 
           runs ->
             expect(editorPane).toHaveFocus()
             expect(previewPane.getActiveItem()).toBe preview
 
       describe "when the liveUpdate config is set to false", ->
-        it "only re-renders the markdown when the editor is saved, not when the contents are modified", ->
-          atom.config.set 'markdown-preview.liveUpdate', false
+        it "only re-renders the bbcode when the editor is saved, not when the contents are modified", ->
+          atom.config.set 'bbcode-preview.liveUpdate', false
 
           contentsModifiedHandler = jasmine.createSpy('contents-modified')
           atom.workspace.getActiveEditor().getBuffer().on 'contents-modified', contentsModifiedHandler
@@ -207,9 +207,9 @@ describe "Markdown preview package", ->
             contentsModifiedHandler.callCount > 0
 
           runs ->
-            expect(MarkdownPreviewView::renderMarkdown.callCount).toBe 0
+            expect(BBCodePreviewView::renderBBCode.callCount).toBe 0
             atom.workspace.getActiveEditor().save()
-            expect(MarkdownPreviewView::renderMarkdown.callCount).toBe 1
+            expect(BBCodePreviewView::renderBBCode.callCount).toBe 1
 
     describe "when a new grammar is loaded", ->
       it "re-renders the preview", ->
@@ -217,36 +217,36 @@ describe "Markdown preview package", ->
           atom.packages.activatePackage('language-javascript')
 
         waitsFor ->
-          MarkdownPreviewView::renderMarkdown.callCount > 0
+          BBCodePreviewView::renderBBCode.callCount > 0
 
-  describe "when the markdown preview view is requested by file URI", ->
+  describe "when the bbcode preview view is requested by file URI", ->
     it "opens a preview editor and watches the file for changes", ->
       waitsForPromise "atom.workspace.open promise to be resolved", ->
-        atom.workspace.open("markdown-preview://#{atom.project.resolve('subdir/file.markdown')}")
+        atom.workspace.open("bbcode-preview://#{atom.project.resolve('subdir/file.bbcode')}")
 
       runs ->
-        expect(MarkdownPreviewView::renderMarkdown.callCount).toBeGreaterThan 0
+        expect(BBCodePreviewView::renderBBCode.callCount).toBeGreaterThan 0
         preview = atom.workspace.getActivePaneItem()
-        expect(preview).toBeInstanceOf(MarkdownPreviewView)
+        expect(preview).toBeInstanceOf(BBCodePreviewView)
 
-        MarkdownPreviewView::renderMarkdown.reset()
+        BBCodePreviewView::renderBBCode.reset()
         preview.file.emit('contents-changed')
 
-      waitsFor "renderMarkdown to be called", ->
-        MarkdownPreviewView::renderMarkdown.callCount > 0
+      waitsFor "renderBBCode to be called", ->
+        BBCodePreviewView::renderBBCode.callCount > 0
 
   describe "when the editor's grammar it not enabled for preview", ->
-    it "does not open the markdown preview", ->
-      atom.config.set('markdown-preview.grammars', [])
+    it "does not open the bbcode preview", ->
+      atom.config.set('bbcode-preview.grammars', [])
 
       atom.workspaceView.attachToDom()
 
       waitsForPromise ->
-        atom.workspace.open("subdir/file.markdown")
+        atom.workspace.open("subdir/file.bbcode")
 
       runs ->
         spyOn(atom.workspace, 'open').andCallThrough()
-        atom.workspaceView.getActiveView().trigger 'markdown-preview:toggle'
+        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
         expect(atom.workspace.open).not.toHaveBeenCalled()
 
   describe "when the editor's path changes", ->
@@ -254,18 +254,18 @@ describe "Markdown preview package", ->
       titleChangedCallback = jasmine.createSpy('titleChangedCallback')
 
       waitsForPromise ->
-        atom.workspace.open("subdir/file.markdown")
+        atom.workspace.open("subdir/file.bbcode")
 
       runs ->
-        atom.workspaceView.getActiveView().trigger 'markdown-preview:toggle'
+        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
 
       waitsFor ->
-        MarkdownPreviewView::renderMarkdown.callCount > 0
+        BBCodePreviewView::renderBBCode.callCount > 0
 
       runs ->
         [editorPane, previewPane] = atom.workspaceView.getPaneViews()
         preview = previewPane.getActiveItem()
-        expect(preview.getTitle()).toBe 'file.markdown Preview'
+        expect(preview.getTitle()).toBe 'file.bbcode Preview'
 
         titleChangedCallback.reset()
         preview.one('title-changed', titleChangedCallback)
@@ -275,7 +275,7 @@ describe "Markdown preview package", ->
         titleChangedCallback.callCount is 1
 
 
-  describe "when the URI opened does not have a markdown-preview protocol", ->
+  describe "when the URI opened does not have a bbcode-preview protocol", ->
     it "does not throw an error trying to decode the URI (regression)", ->
       waitsForPromise ->
         atom.workspace.open('%')
@@ -283,13 +283,13 @@ describe "Markdown preview package", ->
       runs ->
         expect(atom.workspace.getActiveEditor()).toBeTruthy()
 
-  describe "when markdown-preview:copy-html is triggered", ->
+  describe "when bbcode-preview:copy-html is triggered", ->
     it "copies the HTML to the clipboard", ->
       waitsForPromise ->
         atom.workspace.open("subdir/simple.md")
 
       runs ->
-        atom.workspaceView.getActiveView().trigger 'markdown-preview:copy-html'
+        atom.workspaceView.getActiveView().trigger 'bbcode-preview:copy-html'
         expect(atom.clipboard.read()).toBe """
           <p><em>italic</em></p>
           <p><strong>bold</strong></p>
@@ -297,7 +297,7 @@ describe "Markdown preview package", ->
         """
 
         atom.workspace.getActiveEditor().setSelectedBufferRange [[0, 0], [1, 0]]
-        atom.workspaceView.getActiveView().trigger 'markdown-preview:copy-html'
+        atom.workspaceView.getActiveView().trigger 'bbcode-preview:copy-html'
         expect(atom.clipboard.read()).toBe """
           <p><em>italic</em></p>
         """
@@ -308,10 +308,10 @@ describe "Markdown preview package", ->
         atom.workspace.open("subdir/evil.md")
 
       runs ->
-        atom.workspaceView.getActiveView().trigger 'markdown-preview:toggle'
+        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
 
       waitsFor ->
-        MarkdownPreviewView::renderMarkdown.callCount > 0
+        BBCodePreviewView::renderBBCode.callCount > 0
 
       runs ->
         [editorPane, previewPane] = atom.workspaceView.getPaneViews()
@@ -324,16 +324,16 @@ describe "Markdown preview package", ->
           world</p>
         """
 
-  describe "when the markdown contains an <html> tag", ->
+  describe "when the bbcode contains an <html> tag", ->
     it "does not throw an exception", ->
       waitsForPromise ->
         atom.workspace.open("subdir/html-tag.md")
 
       runs ->
-        atom.workspaceView.getActiveView().trigger 'markdown-preview:toggle'
+        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
 
       waitsFor ->
-        MarkdownPreviewView::renderMarkdown.callCount > 0
+        BBCodePreviewView::renderBBCode.callCount > 0
 
       runs ->
         [editorPane, previewPane] = atom.workspaceView.getPaneViews()

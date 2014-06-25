@@ -1,9 +1,9 @@
 {
-  "name": "markdown-preview",
-  "version": "0.84.0",
+  "name": "bbcode-preview",
+  "version": "0.1.0",
   "main": "./lib/main",
-  "description": "Open a rendered version of the Markdown in the current editor with `ctrl-shift-m`.",
-  "repository": "https://github.com/atom/markdown-preview",
+  "description": "Open a rendered version of the BBCode in the current editor.",
+  "repository": "https://github.com/Xenoveritas/bbcode-preview",
   "license": "MIT",
   "engines": {
     "atom": "*"

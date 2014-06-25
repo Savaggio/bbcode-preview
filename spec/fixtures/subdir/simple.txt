@@ -1,0 +1,5 @@
+[i]italic[/i]
+
+[b]bold[/b]
+
+encoding → issue

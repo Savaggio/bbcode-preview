@@ -2,17 +2,17 @@ path = require 'path'
 {WorkspaceView} = require 'atom'
 fs = require 'fs-plus'
 temp = require 'temp'
-MarkdownPreviewView = require '../lib/markdown-preview-view'
+BBCodePreviewView = require '../lib/bbcode-preview-view'
 
-describe "MarkdownPreviewView", ->
+describe "BBCodePreviewView", ->
   [file, preview] = []
 
   beforeEach ->
     atom.workspaceView = new WorkspaceView
     atom.workspace = atom.workspaceView.model
 
-    filePath = atom.project.resolve('subdir/file.markdown')
-    preview = new MarkdownPreviewView({filePath})
+    filePath = atom.project.resolve('subdir/file.bbcode')
+    preview = new BBCodePreviewView({filePath})
 
     waitsForPromise ->
       atom.packages.activatePackage('language-ruby')
@@ -21,12 +21,12 @@ describe "MarkdownPreviewView", ->
     preview.destroy()
 
   describe "::constructor", ->
-    it "shows a loading spinner and renders the markdown", ->
+    it "shows a loading spinner and renders the bbcode", ->
       preview.showLoading()
-      expect(preview.find('.markdown-spinner')).toExist()
+      expect(preview.find('.bbcode-spinner')).toExist()
 
       waitsForPromise ->
-        preview.renderMarkdown()
+        preview.renderBBCode()
 
       runs ->
         expect(preview.find(".emoji")).toExist()
@@ -49,10 +49,10 @@ describe "MarkdownPreviewView", ->
       preview.destroy()
 
       waitsForPromise ->
-        atom.workspace.open('new.markdown')
+        atom.workspace.open('new.bbcode')
 
       runs ->
-        preview = new MarkdownPreviewView({editorId: atom.workspace.getActiveEditor().id})
+        preview = new BBCodePreviewView({editorId: atom.workspace.getActiveEditor().id})
         expect(preview.getPath()).toBe atom.workspace.getActiveEditor().getPath()
 
         newPreview = atom.deserializers.deserialize(preview.serialize())
@@ -61,7 +61,7 @@ describe "MarkdownPreviewView", ->
   describe "code block tokenization", ->
     beforeEach ->
       waitsForPromise ->
-        preview.renderMarkdown()
+        preview.renderBBCode()
 
     describe "when the code block's fence name has a matching grammar", ->
       it "tokenizes the code block with the grammar", ->
@@ -86,7 +86,7 @@ describe "MarkdownPreviewView", ->
   describe "image resolving", ->
     beforeEach ->
       waitsForPromise ->
-        preview.renderMarkdown()
+        preview.renderBBCode()
 
     describe "when the image uses a relative path", ->
       it "resolves to a path relative to the file", ->
@@ -106,20 +106,20 @@ describe "MarkdownPreviewView", ->
   describe "gfm newlines", ->
     describe "when gfm newlines are not enabled", ->
       it "creates a single paragraph with <br>", ->
-        atom.config.set('markdown-preview.breakOnSingleNewline', false)
+        atom.config.set('bbcode-preview.breakOnSingleNewline', false)
 
         waitsForPromise ->
-          preview.renderMarkdown()
+          preview.renderBBCode()
 
         runs ->
           expect(preview.find("p:last-child br").length).toBe 0
 
     describe "when gfm newlines are enabled", ->
       it "creates a single paragraph with no <br>", ->
-        atom.config.set('markdown-preview.breakOnSingleNewline', true)
+        atom.config.set('bbcode-preview.breakOnSingleNewline', true)
 
         waitsForPromise ->
-          preview.renderMarkdown()
+          preview.renderBBCode()
 
         runs ->
           expect(preview.find("p:last-child br").length).toBe 1
@@ -127,15 +127,15 @@ describe "MarkdownPreviewView", ->
   describe "when core:save-as is triggered", ->
     beforeEach ->
       preview.destroy()
-      filePath = atom.project.resolve('subdir/simple.md')
-      preview = new MarkdownPreviewView({filePath})
+      filePath = atom.project.resolve('subdir/simple.txt')
+      preview = new BBCodePreviewView({filePath})
 
     it "saves the rendered HTML and opens it", ->
       outputPath = temp.path(suffix: '.html')
       expect(fs.isFileSync(outputPath)).toBe false
 
       waitsForPromise ->
-        preview.renderMarkdown()
+        preview.renderBBCode()
 
       runs ->
         spyOn(atom, 'showSaveDialogSync').andReturn(outputPath)
@@ -157,11 +157,11 @@ describe "MarkdownPreviewView", ->
     beforeEach ->
       preview.destroy()
       filePath = atom.project.resolve('subdir/simple.md')
-      preview = new MarkdownPreviewView({filePath})
+      preview = new BBCodePreviewView({filePath})
 
     it "writes the rendered HTML to the clipboard", ->
       waitsForPromise ->
-        preview.renderMarkdown()
+        preview.renderBBCode()
 
       runs ->
         preview.trigger 'core:copy'

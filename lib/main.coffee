@@ -1,17 +1,17 @@
 url = require 'url'
 fs = require 'fs-plus'
 
-MarkdownPreviewView = null # Defer until used
+BBCodePreviewView = null # Defer until used
 renderer = null # Defer until used
 
-createMarkdownPreviewView = (state) ->
-  MarkdownPreviewView ?= require './markdown-preview-view'
-  new MarkdownPreviewView(state)
+createBBCodePreviewView = (state) ->
+  BBCodePreviewView ?= require './bbcode-preview-view'
+  new BBCodePreviewView(state)
 
 deserializer =
-  name: 'MarkdownPreviewView'
+  name: 'BBCodePreviewView'
   deserialize: (state) ->
-    createMarkdownPreviewView(state) if state.constructor is Object
+    BBCodePreviewView(state) if state.constructor is Object
 atom.deserializers.add(deserializer)
 
 module.exports =
@@ -19,22 +19,19 @@ module.exports =
     breakOnSingleNewline: false
     liveUpdate: true
     grammars: [
-      'source.gfm'
-      'source.litcoffee'
-      'text.html.basic'
       'text.plain'
       'text.plain.null-grammar'
     ]
 
   activate: ->
-    atom.workspaceView.command 'markdown-preview:toggle', =>
+    atom.workspaceView.command 'bbcode-preview:toggle', =>
       @toggle()
 
-    atom.workspaceView.command 'markdown-preview:copy-html', =>
+    atom.workspaceView.command 'bbcode-preview:copy-html', =>
       @copyHtml()
 
-    atom.workspaceView.command 'markdown-preview:toggle-break-on-single-newline', ->
-      atom.config.toggle('markdown-preview.breakOnSingleNewline')
+    atom.workspaceView.command 'bbcode-preview:toggle-break-on-single-newline', ->
+      atom.config.toggle('bbcode-preview.breakOnSingleNewline')
 
     atom.workspace.registerOpener (uriToOpen) ->
       try
@@ -42,7 +39,7 @@ module.exports =
       catch error
         return
 
-      return unless protocol is 'markdown-preview:'
+      return unless protocol is 'bbcode-preview:'
 
       try
         pathname = decodeURI(pathname) if pathname
@@ -50,18 +47,18 @@ module.exports =
         return
 
       if host is 'editor'
-        createMarkdownPreviewView(editorId: pathname.substring(1))
+        createBBCodePreviewView(editorId: pathname.substring(1))
       else
-        createMarkdownPreviewView(filePath: pathname)
+        createBBCodePreviewView(filePath: pathname)
 
   toggle: ->
     editor = atom.workspace.getActiveEditor()
     return unless editor?
 
-    grammars = atom.config.get('markdown-preview.grammars') ? []
+    grammars = atom.config.get('bbcode-preview.grammars') ? []
     return unless editor.getGrammar().scopeName in grammars
 
-    uri = "markdown-preview://editor/#{editor.id}"
+    uri = "bbcode-preview://editor/#{editor.id}"
 
     previewPane = atom.workspace.paneForUri(uri)
     if previewPane
@@ -69,19 +66,15 @@ module.exports =
       return
 
     previousActivePane = atom.workspace.getActivePane()
-    atom.workspace.open(uri, split: 'right', searchAllPanes: true).done (markdownPreviewView) ->
-      if markdownPreviewView instanceof MarkdownPreviewView
-        markdownPreviewView.renderMarkdown()
+    atom.workspace.open(uri, split: 'right', searchAllPanes: true).done (bbcodePreviewView) ->
+      if bbcodePreviewView instanceof BBCodePreviewView
+        bbcodePreviewView.renderBBCode()
         previousActivePane.activate()
 
   copyHtml: ->
     editor = atom.workspace.getActiveEditor()
     return unless editor?
 
-    renderer ?= require './renderer'
+    renderer ?= require './bbcode'
     text = editor.getSelectedText() or editor.getText()
-    renderer.toText text, editor.getPath(), (error, html) =>
-      if error
-        console.warn('Copying Markdown as HTML failed', error)
-      else
-        atom.clipboard.write(html)
+    atom.clipboard.write(renderer.bbcode(text))

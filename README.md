@@ -1,9 +1,6 @@
-# Markdown Preview package [![Build Status](https://travis-ci.org/atom/markdown-preview.svg?branch=master)](https://travis-ci.org/atom/markdown-preview)
+# BBCode Preview package
 
-Show the rendered HTML markdown to the right of the current editor using
-`ctrl-shift-m`
+Show the rendered HTML BBCode to the right of the current editor
 
-It can be activated from the editor using the `ctrl-shift-m` key-binding and is
-currently enabled for `.markdown`, `.md`, `.mkd`, `.mkdown`, and `.ron` files.
-
-![](https://f.cloud.github.com/assets/671378/2265253/5b1c2ae8-9e7e-11e3-9d93-3fa7caae4710.png)
+This currently a fork of the Atom-included markdown-preview package and simply
+swaps out Markdown parsing for BBCode parsing.

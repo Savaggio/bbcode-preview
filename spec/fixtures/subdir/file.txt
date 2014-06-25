@@ -1,4 +1,4 @@
-## File.markdown
+## File.bbcode
 
 :cool:
 

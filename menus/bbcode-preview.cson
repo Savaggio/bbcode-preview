@@ -1,15 +1,15 @@
 'menu': [
   'label': 'Packages'
   'submenu': [
-    'label': 'Markdown Preview'
+    'label': 'BBCode Preview'
     'submenu': [
       'label': 'Toggle Preview'
-      'command': 'markdown-preview:toggle'
+      'command': 'bbcode-preview:toggle'
     ]
   ]
 ]
 
 'context-menu':
-  '.markdown-preview':
+  '.bbcode-preview':
     'Copy': 'core:copy'
     'Save As HTML\u2026': 'core:save-as'

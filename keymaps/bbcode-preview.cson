@@ -1,0 +1,10 @@
+# I don't have a good idea for a global key binding yet
+#'.workspace':
+#  'ctrl-M': 'bbcode-preview:toggle'
+
+'.bbcode-preview':
+  'cmd-+': 'bbcode-preview:zoom-in'
+  'cmd-=': 'bbcode-preview:zoom-in'
+  'cmd--': 'bbcode-preview:zoom-out'
+  'cmd-_': 'bbcode-preview:zoom-out'
+  'cmd-0': 'bbcode-preview:reset-zoom'

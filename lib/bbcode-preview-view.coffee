@@ -5,15 +5,20 @@ _ = require 'underscore-plus'
 fs = require 'fs-plus'
 {File} = require 'pathwatcher'
 
-renderer = require './renderer'
+bbcode = require './bbcode'
 
 module.exports =
-class MarkdownPreviewView extends ScrollView
+class BBCodePreviewView extends ScrollView
   @content: ->
-    @div class: 'markdown-preview native-key-bindings', tabindex: -1
+    @div class: 'bbcode-preview native-key-bindings', tabindex: -1
 
   constructor: ({@editorId, filePath}) ->
     super
+
+    # In order to allow some munging of BBCode options (for example,
+    # forums-specific code), we create a local copy. Eventually the preview pane
+    # will likely contain controls to change the BBCode version.
+    @bbcode = new bbcode.BBCodeParser()
 
     if @editorId?
       @resolveEditor(@editorId)
@@ -25,7 +30,7 @@ class MarkdownPreviewView extends ScrollView
           @subscribeToFilePath(filePath)
 
   serialize: ->
-    deserializer: 'MarkdownPreviewView'
+    deserializer: 'BBCodePreviewView'
     filePath: @getPath()
     editorId: @editorId
 
@@ -36,7 +41,7 @@ class MarkdownPreviewView extends ScrollView
     @file = new File(filePath)
     @trigger 'title-changed'
     @handleEvents()
-    @renderMarkdown()
+    @renderBBCode()
 
   resolveEditor: (editorId) ->
     resolve = =>
@@ -55,7 +60,7 @@ class MarkdownPreviewView extends ScrollView
     else
       @subscribe atom.packages.once 'activated', =>
         resolve()
-        @renderMarkdown()
+        @renderBBCode()
 
   editorForId: (editorId) ->
     for editor in atom.workspace.getEditors()
@@ -63,7 +68,7 @@ class MarkdownPreviewView extends ScrollView
     null
 
   handleEvents: ->
-    @subscribe atom.syntax, 'grammar-added grammar-updated', _.debounce((=> @renderMarkdown()), 250)
+    @subscribe atom.syntax, 'grammar-added grammar-updated', _.debounce((=> @renderBBCode()), 250)
     @subscribe this, 'core:move-up', => @scrollUp()
     @subscribe this, 'core:move-down', => @scrollDown()
     @subscribe this, 'core:save-as', =>
@@ -72,19 +77,19 @@ class MarkdownPreviewView extends ScrollView
     @subscribe this, 'core:copy', =>
       return false if @copyToClipboard()
 
-    @subscribeToCommand atom.workspaceView, 'markdown-preview:zoom-in', =>
+    @subscribeToCommand atom.workspaceView, 'bbcode-preview:zoom-in', =>
       zoomLevel = parseFloat(@css('zoom')) or 1
       @css('zoom', zoomLevel + .1)
 
-    @subscribeToCommand atom.workspaceView, 'markdown-preview:zoom-out', =>
+    @subscribeToCommand atom.workspaceView, 'bbcode-preview:zoom-out', =>
       zoomLevel = parseFloat(@css('zoom')) or 1
       @css('zoom', zoomLevel - .1)
 
-    @subscribeToCommand atom.workspaceView, 'markdown-preview:reset-zoom', =>
+    @subscribeToCommand atom.workspaceView, 'bbcode-preview:reset-zoom', =>
       @css('zoom', 1)
 
     changeHandler = =>
-      @renderMarkdown()
+      @renderBBCode()
       pane = atom.workspace.paneForUri(@getUri())
       if pane? and pane isnt atom.workspace.getActivePane()
         pane.activateItem(this)
@@ -93,28 +98,26 @@ class MarkdownPreviewView extends ScrollView
       @subscribe(@file, 'contents-changed', changeHandler)
     else if @editor?
       @subscribe @editor.getBuffer(), 'contents-modified', =>
-        changeHandler() if atom.config.get 'markdown-preview.liveUpdate'
+        changeHandler() if atom.config.get 'bbcode-preview.liveUpdate'
       @subscribe @editor, 'path-changed', => @trigger 'title-changed'
       @subscribe @editor.getBuffer(), 'reloaded saved', =>
-        changeHandler() unless atom.config.get 'markdown-preview.liveUpdate'
+        changeHandler() unless atom.config.get 'bbcode-preview.liveUpdate'
 
-    @subscribe atom.config.observe 'markdown-preview.breakOnSingleNewline', callNow: false, changeHandler
+    @subscribe atom.config.observe 'bbcode-preview.breakOnSingleNewline', callNow: false, changeHandler
 
-  renderMarkdown: ->
+  renderBBCode: ->
     @showLoading()
     if @file?
-      @file.read().then (contents) => @renderMarkdownText(contents)
+      @file.read().then (contents) => @renderBBCodeText(contents)
     else if @editor?
-      @renderMarkdownText(@editor.getText())
+      @renderBBCodeText(@editor.getText())
 
-  renderMarkdownText: (text) ->
-    renderer.toHtml text, @getPath(), (error, html) =>
-      if error
-        @showError(error)
-      else
-        @loading = false
-        @html(html)
-        @trigger('markdown-preview:markdown-changed')
+  renderBBCodeText: (text) ->
+    # TODO: Some form of error handling?
+    html = @bbcode.transform(text)
+    @loading = false
+    @html(html)
+    @trigger('bbcode-preview:bbcode-changed')
 
   getTitle: ->
     if @file?
@@ -122,16 +125,16 @@ class MarkdownPreviewView extends ScrollView
     else if @editor?
       "#{@editor.getTitle()} Preview"
     else
-      "Markdown Preview"
+      "BBCode Preview"
 
   getIconName: ->
-    "markdown"
+    "bbcode"
 
   getUri: ->
     if @file?
-      "markdown-preview://#{@getPath()}"
+      "bbcode-preview://#{@getPath()}"
     else
-      "markdown-preview://editor/#{@editorId}"
+      "bbcode-preview://editor/#{@editorId}"
 
   getPath: ->
     if @file?
@@ -143,13 +146,13 @@ class MarkdownPreviewView extends ScrollView
     failureMessage = result?.message
 
     @html $$$ ->
-      @h2 'Previewing Markdown Failed'
+      @h2 'Previewing BBCode Failed'
       @h3 failureMessage if failureMessage?
 
   showLoading: ->
     @loading = true
     @html $$$ ->
-      @div class: 'markdown-spinner', 'Loading Markdown\u2026'
+      @div class: 'bbcode-spinner', 'Loading BBCode\u2026'
 
   copyToClipboard: ->
     return false if @loading
@@ -171,13 +174,13 @@ class MarkdownPreviewView extends ScrollView
     if filePath
       filePath += '.html'
     else
-      filePath = 'untitled.md.html'
+      filePath = 'untitled.bbcode.html'
       if projectPath = atom.project.getPath()
         filePath = path.join(projectPath, filePath)
 
     if htmlFilePath = atom.showSaveDialogSync(filePath)
       # Hack to prevent encoding issues
-      # https://github.com/atom/markdown-preview/issues/96
+      # https://github.com/atom/bbcode-preview/issues/96
       html = @[0].innerHTML.split('').join('')
 
       fs.writeFileSync(htmlFilePath, html)
