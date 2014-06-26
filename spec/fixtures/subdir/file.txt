@@ -1,6 +1,6 @@
 [b][u][i]File.bbcode[/i][/u][/b]
 
-:cool:
+8-)
 
 ```ruby
 def func
@@ -34,11 +34,11 @@ def foo()
   baz
 ```
 
-![Image1](image1.png)
+[img]image1.png[/img]
 
-![Image2](/tmp/image2.png)
+[img]/tmp/image2.png[/img]
 
-![Image3](http://github.com/image3.png)
+[img]http://github.com/image3.png[/img]
 
 lorem
 ipsum

@@ -85,26 +85,25 @@ describe "BBCodePreviewView", ->
   #     it "detects and styles the block", ->
   #       expect(preview.find("pre:has(code.lang-javascript)")).toHaveClass 'editor-colors'
 
-  # FIXME: These should be implemented
-  # describe "image resolving", ->
-  #   beforeEach ->
-  #     waitsForPromise ->
-  #       preview.renderBBCode()
-  #
-  #   describe "when the image uses a relative path", ->
-  #     it "resolves to a path relative to the file", ->
-  #       image = preview.find("img[alt=Image1]")
-  #       expect(image.attr('src')).toBe atom.project.resolve('subdir/image1.png')
-  #
-  #   describe "when the image uses an absolute path", ->
-  #     it "doesn't change the path", ->
-  #       image = preview.find("img[alt=Image2]")
-  #       expect(image.attr('src')).toBe path.normalize(path.resolve('/tmp/image2.png'))
-  #
-  #   describe "when the image uses a web URL", ->
-  #     it "doesn't change the URL", ->
-  #       image = preview.find("img[alt=Image3]")
-  #       expect(image.attr('src')).toBe 'http://github.com/image3.png'
+  describe "image resolving", ->
+    beforeEach ->
+      waitsForPromise ->
+        preview.renderBBCode()
+
+    describe "when the image uses a relative path", ->
+      it "resolves to a path relative to the file", ->
+        image = preview.find("img").eq(0)
+        expect(image.attr('src')).toBe atom.project.resolve('subdir/image1.png')
+
+    describe "when the image uses an absolute path", ->
+      it "doesn't change the path", ->
+        image = preview.find("img").eq(1)
+        expect(image.attr('src')).toBe path.normalize(path.resolve('/tmp/image2.png'))
+
+    describe "when the image uses a web URL", ->
+      it "doesn't change the URL", ->
+        image = preview.find("img").eq(2)
+        expect(image.attr('src')).toBe 'http://github.com/image3.png'
 
   describe "when core:save-as is triggered", ->
     beforeEach ->

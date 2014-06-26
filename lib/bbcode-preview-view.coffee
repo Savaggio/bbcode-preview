@@ -7,6 +7,32 @@ fs = require 'fs-plus'
 
 bbcode = require './bbcode'
 
+# Custom img tag handler
+class ResolvingImgTag
+  @nests: false
+  @basePath: null
+
+  setBasePath: (basePath) ->
+    @basePath = if basePath? then path.dirname(basePath) else null
+
+  resolvePath: (htmlPath) ->
+    if @basePath?
+      if /^\w+:/.test(htmlPath)
+        htmlPath
+      else
+        path.resolve(@basePath, htmlPath)
+    else
+      htmlPath
+
+  startTag: (name, arg) ->
+    ""
+
+  endTag: ->
+    ""
+
+  content: (text) ->
+    '<img src="' + bbcode.bbcode.escapeHTMLAttr(@resolvePath(text)) + '">'
+
 module.exports =
 class BBCodePreviewView extends ScrollView
   @content: ->
@@ -19,6 +45,10 @@ class BBCodePreviewView extends ScrollView
     # forums-specific code), we create a local copy. Eventually the preview pane
     # will likely contain controls to change the BBCode version.
     @bbcode = new bbcode.BBCodeParser()
+    # We immediately need to inject a new modified image tag that deals with
+    # creating relative paths
+    @imgTag = new ResolvingImgTag()
+    @bbcode.tags["img"] = @imgTag
 
     if @editorId?
       @resolveEditor(@editorId)
@@ -114,6 +144,7 @@ class BBCodePreviewView extends ScrollView
 
   renderBBCodeText: (text) ->
     # TODO: Some form of error handling?
+    @imgTag.setBasePath(@getPath())
     html = @bbcode.transform(text)
     @loading = false
     @html(html)
