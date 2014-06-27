@@ -9,21 +9,31 @@ describe "BBCode parser", ->
         expect(text).toBe """
           <p>&lt;script type="text/javascript"&gt;alert("Whoops");&lt;/script&gt;</p>
         """
-    it "properly escapes HTML characters in [img] tags", ->
+
+  describe "when handling [url] tags", ->
+    it "ignores tags without URLs in them", ->
+      runs ->
+        text = bbcode.bbcode("[url]not a url[/url]")
+        expect(text).toBe "[url]not a url[/url]"
+
+  describe "when handling [img] tags", ->
+    it "ignores tags without URLs in them", ->
+      runs ->
+        text = bbcode.bbcode("[img]not a url[/img]")
+        expect(text).toBe "[img]not a url[/img]"
+
+  describe "when handling [code] tags", ->
+    it "includes start and end tags", ->
       runs ->
         text = bbcode.bbcode("""
-          [img]" onload="alert('rm -rf')[/img]
+          [code]
+          This is some code.
+          [/code]
         """)
         expect(text).toBe """
-          <p><img src="&quot; onload=&quot;alert(&#39;rm -rf&#39;)"></p>
-        """
-    it "properly escapes HTML characters in [url] tags", ->
-      runs ->
-        text = bbcode.bbcode("""
-          [url=" onclick="alert('rm -rf')]Click me![/url]
-        """)
-        expect(text).toBe """
-          <p><a href="&quot; onclick=&quot;alert(&#39;rm -rf&#39;)" rel="nofollow">Click me!</a></p>
+          <pre>
+          This is some code.
+          </pre>
         """
 
   describe "when converting newlines", ->
