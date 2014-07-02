@@ -5,7 +5,6 @@
 
 # Utility functions
 isValidURL = (url) ->
-  console.log "Check #{url}"
   /^(?:https?|ftp):\/\//i.test(url)
 
 escapeHTML = (str) ->
@@ -55,6 +54,7 @@ class Tag
 
 class SimpleTag extends Tag
   constructor: (htmlElement) ->
+    super()
     @htmlStart = "<#{htmlElement}>"
     @htmlEnd = "</#{htmlElement}>"
 
@@ -263,6 +263,13 @@ class BBText extends BBNode
 
 # Root of the BBCode document.
 class BBDocument extends BBNode
+  constructor: ->
+    super
+  onChildTag: (event) ->
+    true
+  toHTML: ->
+    # FIXME: This won't work with [code] and [pre]
+    convertNewlinesToHTML(super())
 
 # Parse state.
 class BBParse extends BBNode
@@ -285,7 +292,7 @@ class BBParse extends BBNode
             # Counts, send it to the tag handler
             event = new TagEvent this, tok
             # First, see if the currently active tag allows children
-            if (!(activeTag?)) or activeTag.onChildTag(event)
+            if @activeNode.onChildTag(event)
               child = tag.onStartTag(event)
               if child?
                 @tagStack.push {'name': tok.name, 'tag': tag, 'node': child}
@@ -325,14 +332,12 @@ class BBParse extends BBNode
     # Some future version may do something different, this just does this:
     @activeNode.onText(new TextEvent(this, raw))
 
-
 class BBCodeParser
   constructor: ->
     # Clone the tags as a new object since they may be altered.
     @tags = {}
     for name, tag of BBCodeParser.DEFAULT_TAGS
       @tags[name] = tag
-    console.log @tags
 
   @ROOT_TAG: Tag
   @DEFAULT_TAGS:
@@ -366,66 +371,7 @@ class BBCodeParser
     new BBParse(this).parse(str.toString())
 
   transform: (str) ->
-    str ?= "null"
-    str = str.toString()
-    tokenizer = new TagTokenizer(str)
-    result = "";
-    tagStack = [];
-    top = null;
-    while tokenizer.hasNext()
-      tok = tokenizer.next()
-      if (tok.type == 'tag')
-        # Look up the tag.
-        tag = @findTag(tok.name)
-        if (tag)
-          tag = @tags[tok.name]
-          if (tag.nests)
-            # Push onto the tag stack
-            top = { name: tok.name, tag: tag }
-            tagStack.push(top)
-          html = tag.startTag(tok.name, tok.arg)
-          result += html if html?
-          if !tag.nests
-            # In this case, keep on eating tokens until we find
-            # a matching end tag.
-            content = "";
-            while tokenizer.hasNext()
-              nestedTok = tokenizer.next()
-              if (nestedTok.type == 'text')
-                content += nestedTok.text;
-              else if (nestedTok.type == 'endtag')
-                if (nestedTok.name == tok.name)
-                  # End tag - give the content over
-                  result += tag.content(content)
-                  # And end the tag
-                  tag.endTag(nestedTok.name, nestedTok.arg)
-                  break;
-                else
-                  # Add raw
-                  content += nestedTok.raw
-              else
-                content += nestedTok.raw
-        else
-          # Don't understand it, dump it as-is.
-          result += escapeHTML(tok.raw);
-      else if (tok.type == 'endtag')
-        # Currently this must be the top tag on the stack or we ignore
-        # it.
-        if (top && top.name == tok.name)
-          html = top.tag.endTag(tok.name, tok.arg)
-          result += html if html?
-          # Pop the stack
-          tagStack.pop()
-          if (tagStack.length <= 0)
-            top = null
-          else
-            top = tagStack[tagStack.length-1]
-        else
-          # Dump.
-          result += escapeHTML(tok.raw)
-      else if (tok.type == 'text')
-        result += escapeHTML(tok.text)
-    return convertNewlinesToHTML(result)
+    @parse(str).toHTML()
 
 defaultParser = new BBCodeParser()
 

@@ -91,12 +91,13 @@ describe "BBCodePreviewView", ->
         preview.renderBBCode()
 
     describe "when the image uses a relative path", ->
-      it "resolves to a path relative to the file", ->
-        image = preview.find("img").eq(0)
+      it "ignores the [img] tag", ->
+        preview.find("p")
+        #image = preview.find("img").eq(0)
         expect(image.attr('src')).toBe atom.project.resolve('subdir/image1.png')
 
     describe "when the image uses an absolute path", ->
-      it "doesn't change the path", ->
+      it "ignores the [img] tag", ->
         image = preview.find("img").eq(1)
         expect(image.attr('src')).toBe path.normalize(path.resolve('/tmp/image2.png'))
 
