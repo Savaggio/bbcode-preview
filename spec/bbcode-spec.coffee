@@ -10,11 +10,39 @@ describe "BBCode parser", ->
           <p>&lt;script type="text/javascript"&gt;alert("Whoops");&lt;/script&gt;</p>
         """
 
+  describe "when parsing tags", ->
+    it "ignores case", ->
+      runs ->
+        text = bbcode.bbcode "[b]Test[/b]"
+        expect(text).toBe "<b>Test</b>"
+        text = bbcode.bbcode "[b]Test[/B]"
+        expect(text).toBe "<b>Test</b>"
+        text = bbcode.bbcode "[B]Test[/b]"
+        expect(text).toBe "<b>Test</b>"
+        text = bbcode.bbcode "[B]Test[/B]"
+        expect(text).toBe "<b>Test</b>"
+
   describe "when handling [url] tags", ->
     it "ignores tags without URLs in them", ->
       runs ->
         text = bbcode.bbcode("[url]not a url[/url]")
         expect(text).toBe "[url]not a url[/url]"
+    it "allows HTTP URLs", ->
+      runs ->
+        text = bbcode.bbcode("[url=http://www.example.com]test[/url]")
+        expect(text).toBe "<a href=\"http://www.example.com\" rel=\"nofollow\">test</a>"
+    it "allows HTTP URLs regardless of case", ->
+      runs ->
+        text = bbcode.bbcode("[url=HTTP://WWW.EXAMPLE.COM]test[/url]")
+        expect(text).toBe "<a href=\"HTTP://WWW.EXAMPLE.COM\" rel=\"nofollow\">test</a>"
+    it "allows HTTPS URLs", ->
+      runs ->
+        text = bbcode.bbcode("[url=https://www.example.com]test[/url]")
+        expect(text).toBe "<a href=\"https://www.example.com\" rel=\"nofollow\">test</a>"
+    it "allows HTTPS URLs regardless of case", ->
+      runs ->
+        text = bbcode.bbcode("[url=HTTPS://WWW.EXAMPLE.COM]test[/url]")
+        expect(text).toBe "<a href=\"HTTPS://WWW.EXAMPLE.COM\" rel=\"nofollow\">test</a>"
 
   describe "when handling [img] tags", ->
     it "ignores tags without URLs in them", ->

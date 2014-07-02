@@ -3,77 +3,88 @@
 # Tags may optionally take an argument, and closing tags may optionally require
 # the closing argument to match. (So [list=1][/list=1] versus [list=1][/list])
 
-# Very basic tag class that simply generates HTML.
-class Tag
-  # @param [String] html the HTML tag to generate for the start/end tags.
-  # @param [String] cssClass CSS classes to stick in the start tag.
-  constructor: (html, cssClass) ->
-    if html?
-      @html_start = "<" + html
-      if cssClass?
-        @html_start += ' class="' + cssClass + '"'
-      @html_start += ">";
-      @html_end = "</" + html + ">";
-    else
-      @html_start = this.html_end = "";
-
-  # Whether or not this tag "nests" with other tags - if false, everything
-  # before its ending tag will be passed to content. Otherwise, subtags will
-  # be parsed.
-  nests: true
-  # Start a tag. May either return a string that is interested as HTML directly
-  # or instead an Object that is a Tag that contains whatever state is required
-  # to deal with content and endTag.
-  startTag: (name, arg) ->
-    @html_start
-
-  # Receive the tag content. If "nests" is true, this is ONLY called for
-  # text that passes through it before being given to other tags.
-  content: (str) ->
-    str
-
-  endTag: (name, arg) ->
-    @html_end
-
-class URLTag extends Tag
-  constructor: ->
-    super("a")
-  startTag: (name, arg) ->
-    '<a href="' + escapeHTMLAttr(arg) + '" rel="nofollow">'
-
-class ImgTag extends Tag
-  constructor: ->
-    super("img")
-  @nests: false
-  startTag: (name, arg) ->
-    null # Do nothing.
-  content: (str) ->
-    '<img src="' + escapeHTMLAttr(str) + '">'
-  endTag: (name, arg) ->
-    null # Also do nothing
-
-class QuoteTag extends Tag
-  constructor: ->
-    super("blockquote", "quote")
-  startTag: (name, arg) ->
-    if arg?
-      '<div class="quote-by">' + escapeHTML(arg) + ' wrote:</div>' + @start_html
-    else
-      @start_html
-
-class PreTag extends Tag
-  constructor: ->
-    super("pre")
-  @nests: false
-
-# Conceptually CodeTag has more to it than pre, but for now, it's identical
-class CodeTag extends PreTag
+# Utility functions
+isValidURL = (url) ->
+  console.log "Check #{url}"
+  /^(?:https?|ftp):\/\//i.test(url)
 
 escapeHTML = (str) ->
   str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 escapeHTMLAttr = (str) ->
   escapeHTML(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+
+class TextEvent
+  constructor: (state, text) ->
+    @state = state
+    @text = text
+
+class TagEvent
+  constructor: (state, token) ->
+    @state = state
+    @tag = token.name
+    {@arg, @raw} = token
+
+# A BBCode Tag.
+#
+# The Tag class is basically a BBNode factory - a class that can
+# create BBNodes inside the parse tree.
+#
+# As such the tag class itself only handles receives events that create BBNodes.
+# Once the BBNode is added and stuffed on the top of the stack, it receives
+# further parse events until the parse is complete.
+#
+# The default Tag class can be given a BBNode class that will be instantiated
+# whenever onStartTag is received. If the start tag has arguments, it will be
+# assumed to be invalid and nothing will be added.
+class Tag
+  constructor: (nodeClass) ->
+    @nodeClass = nodeClass
+
+  # Indicates that a tag for this tag class is starting. This method should
+  # create and return an appropriate BBNode that will handle the remaining
+  # parse events. If this tag cannot handle this event (for example, the
+  # arguments are invalid), it should return <code>null</code> in which case it
+  # will be converted into a corresponding text event and delivered to the
+  # current node.
+  onStartTag: (event) ->
+    if event.arg?
+      null
+    else
+      new @nodeClass()
+
+class SimpleTag extends Tag
+  constructor: (htmlElement) ->
+    @htmlStart = "<#{htmlElement}>"
+    @htmlEnd = "</#{htmlElement}>"
+
+  onStartTag: (event) ->
+    if event.arg?
+      null
+    else
+      new BBElement(@htmlStart, @htmlEnd)
+
+class URLTag extends Tag
+  constructor: ->
+    super(null)
+
+  onStartTag: (event) ->
+    if isValidURL event.arg
+      new BBElement("<a href=\"#{escapeHTMLAttr(event.arg)}\" rel=\"nofollow\">", "</a>")
+    else
+      null
+
+class ImgTag extends Tag
+  constructor: ->
+    super(null)
+
+  onStartTag: (event) ->
+    if event.arg?
+      null
+    else
+      # Because we won't know if it's valid until after it ends, store the raw
+      # value
+      new BBImgElement(event.raw)
 
 convertNewlinesToHTML = (text) ->
   if (text.length == 0)
@@ -123,7 +134,6 @@ class TagTokenizer
   #
   _next: ->
     #console.log("_next(%d)", this.currentOffset);
-    console.log(@str)
     if (@currentOffset >= @str.length)
       return null;
     # This is fairly simple: are we starting with a [?
@@ -147,7 +157,7 @@ class TagTokenizer
           name = tag.substring(0, eqIdx);
           arg = tag.substring(eqIdx + 1);
           # If the argument is surrounded by quotes, remove them
-          if (arg.charAt(0) == '"' && arg.charAt(arg.length-1) == '"')
+          if (arg.charAt(0) == '"' and arg.charAt(arg.length-1) == '"')
             arg.substring(1, arg.length-1);
         raw = @str.substring(@currentOffset, idx+1);
         @currentOffset = idx+1;
@@ -156,65 +166,204 @@ class TagTokenizer
       else
         # We don't like this tag, so we just return the current text
         # element, advance by one, and continue.
-        @currentOffset++;
+        @currentOffset++
         return { type: 'text', text: '[' }
     else
       idx = @str.indexOf('[', @currentOffset)
       if idx < 0
         # last text token
-        tok = { type: 'text', text: @str.substring(@currentOffset) };
+        tok = { type: 'text', text: @str.substring(@currentOffset) }
         @currentOffset = @str.length;
         return tok;
       else
-        tok = { type: 'text', text: @str.substring(@currentOffset, idx) };
-        @currentOffset = idx;
-        return tok;
+        tok = { type: 'text', text: @str.substring(@currentOffset, idx) }
+        @currentOffset = idx
+        return tok
 
-#
-# @constructor
-#
+# A node in a BBCode document.
+class BBNode
+  constructor: ->
+    @parent = null
+    @children = []
+
+  # Receives notification that a child tag has been found. This is sent prior to
+  # the tag being sent an onStartTag event and may be used to prevent the tag
+  # event from being sent at all. If this node doesn't accept children, this
+  # may instead return false, which will halt further processing and likely
+  # cause an onText event.
+  onChildTag: (event) ->
+    false
+
+  # Receives notification that an end tag was received. The end tag may or may
+  # not correspond to the opening tag.
+  onEndTag: (event) ->
+    false
+
+  onText: (event) ->
+    @appendText(event.text)
+
+  appendChild: (child) ->
+    if child.parent != null
+      throw new Error("Attempting to add child that already has a parent")
+    child.parent = this
+    @children.push(child)
+    child
+
+  appendText: (text) ->
+    @appendChild(new BBText(text))
+
+  toHTML: ->
+    # Assume all our children do something
+    html = []
+    @children.forEach (child) ->
+      html.push(child.toHTML())
+    html.join('')
+
+class BBElement extends BBNode
+  constructor: (start, end, nests = true) ->
+    super()
+    @htmlStart = start
+    @htmlEnd = end
+    @nests = nests
+
+  onChildTag: (event) ->
+    @nests
+
+  toHTML: ->
+    @htmlStart + super + @htmlEnd
+
+class BBImgElement extends BBNode
+  constructor: (rawStart) ->
+    super
+    @rawStart = rawStart
+    @url = []
+  onChildTag: (event) ->
+    false
+  onText: (event) ->
+    @url.push(event.text)
+  onEndTag: (event) ->
+    if event.tag == 'img'
+      @rawEnd = event.raw
+    else
+      @rawEnd = ""
+  toHTML: ->
+    url = @url.join('')
+    if isValidURL(url)
+      "<img src=\"#{escapeHTMLAttr(url)}\">"
+    else
+      escapeHTML(@rawStart + url + @rawEnd)
+
+class BBText extends BBNode
+  data: ""
+  constructor: (data) ->
+    super()
+    @data = data
+  toHTML: ->
+    escapeHTML @data
+
+# Root of the BBCode document.
+class BBDocument extends BBNode
+
+# Parse state.
+class BBParse extends BBNode
+  constructor: (parser) ->
+    @parser = parser
+
+  parse: (str) ->
+    @doc = new BBDocument()
+    tokenizer = new TagTokenizer(str)
+    activeTag = null
+    @tagStack = []
+    @activeNode = @doc
+    while tokenizer.hasNext()
+      tok = tokenizer.next()
+      switch tok.type
+        when 'tag'
+          # See what we can do with this
+          tag = @parser.findTag(tok.name)
+          if tag?
+            # Counts, send it to the tag handler
+            event = new TagEvent this, tok
+            # First, see if the currently active tag allows children
+            if (!(activeTag?)) or activeTag.onChildTag(event)
+              child = tag.onStartTag(event)
+              if child?
+                @tagStack.push {'name': tok.name, 'tag': tag, 'node': child}
+                activeTag = tag
+                @activeNode.appendChild child
+                @activeNode = child
+                continue
+          # If we've fallen through any of the above, we're not handling the
+          # tag, so treat it as a "dead" tag.
+          @onDeadTag(tok.raw)
+        when 'text'
+          @activeNode.onText new TextEvent(this, tok.text);
+        when 'endtag'
+          # If this is an end tag, make sure it's an end tag for something that's
+          # actually open.
+          found = false
+          if @tagStack.length > 0
+            for i in [(@tagStack.length-1)..0]
+              if @tagStack[i].name == tok.name
+                # Found the tag this is closing. Everything above this should
+                # receive a close event and we close down to this tag.
+                found = true
+                event = new TagEvent this, tok
+                for j in [(@tagStack.length-1)..i]
+                  @tagStack[j].node.onEndTag(event)
+                # And rip off the end of the tag stack
+                @tagStack.length = j
+                if @tagStack.length > 0
+                  @activeNode = @tagStack[@tagStack.length-1].node
+                else
+                  @activeNode = @doc
+                break
+          @onDeadTag(tok.raw) unless found
+    @doc
+
+  onDeadTag: (raw) ->
+    # Some future version may do something different, this just does this:
+    @activeNode.onText(new TextEvent(this, raw))
+
+
 class BBCodeParser
   constructor: ->
     # Clone the tags as a new object since they may be altered.
-    @tags = {};
-    for k in BBCodeParser.DEFAULT_TAGS
-      @tags[k] = BBCodeParser.DEFAULT_TAGS[k]
+    @tags = {}
+    for name, tag of BBCodeParser.DEFAULT_TAGS
+      @tags[name] = tag
+    console.log @tags
+
+  @ROOT_TAG: Tag
   @DEFAULT_TAGS:
     'url': new URLTag(),
     'img': new ImgTag(),
-    'quote': new QuoteTag(),
-    'pre': new PreTag(),
-    'code': new CodeTag(),
-    'b': new Tag('b'),
-    'i': new Tag('i'),
-    'u': new Tag('u'),
-    's': new Tag('strike')
-
-  @EM_TAG: new Tag('em');
-  @STRONG_TAG: new Tag('strong');
+#    'quote': QuoteTag,
+#    'pre': PreTag,
+#    'code': CodeTag,
+    'b': new SimpleTag("b"),
+    'i': new SimpleTag("i"),
+    'u': new SimpleTag("u"),
+    's': new SimpleTag("strike")
 
   # Sets whether or not to use &lt;em&gt; and &lt;strong&gt; instead of
   # &lt;i&gt; and &lt;b&gt;. It's debatable which is correct.
   #
   setUseEmStrong: (useEmStrong) ->
     if (useEmStrong)
-      @tags['i'] = BBCodeParser.EM_TAG;
-      @tags['b'] = BBCodeParser.STRONG_TAG;
+      @tags['i'] = new SimpleTag("em")
+      @tags['b'] = new SimpleTag("strong")
     else
-      @tags['i'] = BBCodeParser.DEFAULT_TAGS['i'];
-      @tags['b'] = BBCodeParser.DEFAULT_TAGS['b'];
+      @tags['i'] = BBCodeParser.DEFAULT_TAGS['i']
+      @tags['b'] = BBCodeParser.DEFAULT_TAGS['b']
 
   findTag: (name) ->
-    name = name.toLowerCase();
-    if (name of @tags)
-      return @tags[name];
-    else
-      return null
-  #
-  # Parses the input string into a "BBDOM".
-  #
+    name = name.toLowerCase()
+    if name of @tags then @tags[name] else null
+
   parse: (str) ->
-    null
+    str ?= "null"
+    new BBParse(this).parse(str.toString())
 
   transform: (str) ->
     str ?= "null"
@@ -281,22 +430,25 @@ class BBCodeParser
 defaultParser = new BBCodeParser()
 
 bbcode = (str) ->
-  defaultParser.transform(str)
+  defaultParser.parse(str).toHTML()
+  #defaultParser.transform(str)
 
-bbcode.escapeHTML = escapeHTML;
-bbcode.escapeHTMLAttr = escapeHTMLAttr;
+bbcode.escapeHTML = escapeHTML
+bbcode.escapeHTMLAttr = escapeHTMLAttr
 
-exports.bbcode = bbcode;
-exports.Tag = Tag;
-exports.BBCodeParser = BBCodeParser;
+exports.bbcode = bbcode
+exports.Tag = Tag
+exports.BBCodeParser = BBCodeParser
+exports.BBNode = BBNode
+exports.BBDocument = BBDocument
 
 if (module.parent == null)
   # called directly, translate input files into HTML
   files = [];
   # TODO (maybe): Parse args
-  for i in [2..process.argv.length]
+  for i in [2..process.argv.length-1]
     files.push(process.argv[i])
   fs = require('fs');
   files.forEach (f) ->
-    # bbcode(fs.readFileSync(f))
-    process.stdout.write(bbcode(fs.readFileSync(f)))
+    console.log("Reading %s...", f)
+    process.stdout.write(defaultParser.parse(fs.readFileSync(f)))
