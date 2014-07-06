@@ -1,6 +1,6 @@
 {
   "name": "bbcode-preview",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "main": "./lib/main",
   "description": "Open a rendered version of the BBCode in the current editor.",
   "repository": "https://github.com/Xenoveritas/bbcode-preview",

@@ -332,12 +332,32 @@ class BBParse extends BBNode
     # Some future version may do something different, this just does this:
     @activeNode.onText(new TextEvent(this, raw))
 
+class Smiley
+  constructor: (options) ->
+    {@title, @image, @emoji, @match} = options
+    if 'size' of options
+      @imageWidth = options.size[0]
+      @imageHeight = options.size[1]
+    if typeof @match == 'string'
+      @regexp = new RegExp(@match, 'g')
+    else
+      patterns = @match.map (pattern) ->
+        pattern.replace(/([\\\[\]^${}.?+*()-])/g, '\\$1')
+      @regexp = new RegExp(patterns.join('|'), 'g')
+    if @emoji?
+      @replacement = @emoji
+    else
+      @replacement = "(oops)"
+  replace: (text) ->
+    text.replace @regexp, @replacement
+
 class BBCodeParser
   constructor: ->
     # Clone the tags as a new object since they may be altered.
     @tags = {}
     for name, tag of BBCodeParser.DEFAULT_TAGS
       @tags[name] = tag
+    @smileys = BBCodeParser.DEFAULT_SMILIES.slice()
 
   @ROOT_TAG: Tag
   @DEFAULT_TAGS:
@@ -349,7 +369,19 @@ class BBCodeParser
     'b': new SimpleTag("b"),
     'i': new SimpleTag("i"),
     'u': new SimpleTag("u"),
-    's': new SimpleTag("strike")
+    's': new SimpleTag("strike"),
+    'sub': new SimpleTag("sub"),
+    'super': new SimpleTag("super")
+
+  # Built-in smilies based on Emoji, I guess.
+  @DEFAULT_SMILIES: [
+    # How hard could this be? Well, Apple fucks up WHITE SMILING FACE (IMHO),
+    # so instead I'm going to go with SMILING FACE WITH SMILING EYES.
+    # (Aren't these names weird?)
+    new Smiley({"title": "Smile", "emoji": "\uD83D\uDE0A", "match": ":-?\\)"})
+    new Smiley({"title": "Sad", "emoji": "\uD83D\uDE22", "match": ":-?\\("})
+    new Smiley({"title": "Cool", "emoji": "\uD83D\uDE0E", "match": "8-?\\)"})
+  ]
 
   # Sets whether or not to use &lt;em&gt; and &lt;strong&gt; instead of
   # &lt;i&gt; and &lt;b&gt;. It's debatable which is correct.
@@ -370,8 +402,13 @@ class BBCodeParser
     str ?= "null"
     new BBParse(this).parse(str.toString())
 
+  replaceSmileys: (html) ->
+    for smiley in @smileys
+      html = smiley.replace(html)
+    html
+
   transform: (str) ->
-    @parse(str).toHTML()
+    @replaceSmileys(@parse(str).toHTML())
 
 defaultParser = new BBCodeParser()
 
