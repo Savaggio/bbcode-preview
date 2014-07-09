@@ -1,0 +1,151 @@
+# I haven't actually added any of the images of smileys yet, but this contains
+# the information for phpBB 3's default smileys.
+'name': 'phpBB 3 Smileys'
+'smileys': [
+  {
+    'title': 'Very Happy':
+    'image': 'icon_e_biggrin.gif'
+    'size': [ 15, 17 ]
+    'match': ':-?D|:grin:'
+  }
+  {
+    'title': 'Smile':
+    'image': 'icon_e_smile.gif'
+    'size': [ 15, 17 ]
+    'match': ':-?\\)|:smile:'
+  }
+  {
+    'title': 'Wink'
+    'image': 'icon_e_wink.gif'
+    'size': [ 15, 17 ]
+    'emoji': "\uD83D\uDE09"
+    'match': ';-?\\)|:wink:'
+  }
+  {
+    'title': 'Sad'
+    'image': 'icon_e_sad.gif',
+    'size': [ 15, 17 ]
+    'emoji': "\uD83D\uDE22"
+    'match': ':-?\\(|:sad:'
+  }
+  {
+    'title': 'Surprised'
+    'image': 'icon_e_surprised.gif',
+    'size': [ 15, 17 ]
+    'emoji': "\uD83D\uDE2E"
+    'match': [ ':o', ':-o', ':eek:' ]
+  }
+  {
+    'title': 'Shocked'
+    'image': 'icon_eek.gif'
+    'size': [ 15, 17 ]
+    'match': ':shock:'
+  }
+  {
+    'title': 'Confused'
+    'image': 'icon_e_confused.gif'
+    'size': [ 15, 17 ]
+    'match': ':-?\\?|:\\?\\?\\?:'
+  }
+  {
+    'title': 'Cool'
+    'image': 'icon_cool.gif'
+    'size': [ 15, 17 ]
+    'match': '8-\\)|:cool:'
+  }
+  {
+    'title': 'Laughing'
+    'image': 'icon_lol.gif'
+    'size': [ 15, 17 ]
+    'match': ':lol:'
+  }
+  {
+    'title': 'Mad'
+    'image': 'icon_mad.gif'
+    'size': [ 15, 17 ]
+    'match': ':-?x|:mad:'
+  }
+  {
+    'title': 'Razz'
+    'image': 'icon_razz.gif'
+    'size': [ 15, 17 ]
+    'match': ':-?P|:razz:'
+  }
+  {
+    'title': 'Embarrassed'
+    'image': 'icon_redface.gif'
+    'size': [ 15, 17 ]
+    'match': ':oops:'
+  }
+  {
+    'title': 'Crying or Very Sad'
+    'image': 'icon_cry.gif'
+    'size': [ 15, 17 ]
+    'match': ':cry:'
+  }
+  {
+    'title': 'Evil or Very Mad'
+    'image': 'icon_evil.gif'
+    'size': [ 15, 17 ]
+    'match': ':evil:'
+  }
+  {
+    'title': 'Twisted Evil'
+    'image': 'icon_twisted.gif'
+    'size': [ 15, 17 ]
+    'match': ':twisted:'
+  }
+  {
+    'title': 'Rolling Eyes'
+    'image': 'icon_rolleyes.gif'
+    'size': [ 15, 17 ]
+    'match': ':roll:'
+  }
+  {
+    'title': 'Exclamation'
+    'image': 'icon_exclaim.gif'
+    'size': [ 15, 17 ]
+    'match': ':!:'
+  }
+  {
+    'title': 'Question'
+    'image': 'icon_question.gif'
+    'size': [ 15, 17 ]
+    'match': ':\\?:'
+  }
+  {
+    'title': 'Idea'
+    'image': 'icon_idea.gif'
+    'size': [ 15, 17 ]
+    'match': ':idea:'
+  }
+  {
+    'title': 'Arrow'
+    'image': 'icon_arrow.gif'
+    'size': [ 15, 17 ]
+    'match': ':arrow:'
+  }
+  {
+    'title': 'Neutral'
+    'image': 'icon_neutral.gif'
+    'size': [ 15, 17 ]
+    'match': ':-?\\|'
+  }
+  {
+    'title': 'Mr. Green'
+    'image': 'icon_mrgreen.gif'
+    'size': [ 15, 17 ]
+    'match': ':mrgreen:'
+  }
+  {
+    'title': 'Geek'
+    'image': 'icon_e_geek.gif'
+    'size': [ 17, 17 ]
+    'match': ':geek:'
+  }
+  {
+    'title': 'Uber Geek'
+    'image': 'icon_e_ugeek.gif'
+    'size': [ 17, 18 ]
+    'match': ':ugeek:'
+  }

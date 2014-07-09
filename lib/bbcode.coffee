@@ -212,6 +212,7 @@ class BBNode
   appendText: (text) ->
     @appendChild(new BBText(text))
 
+  # Convert this node to HTML.
   toHTML: ->
     # Assume all our children do something
     html = []
@@ -319,7 +320,7 @@ class BBParse extends BBNode
                 for j in [(@tagStack.length-1)..i]
                   @tagStack[j].node.onEndTag(event)
                 # And rip off the end of the tag stack
-                @tagStack.length = j
+                @tagStack.length = i
                 if @tagStack.length > 0
                   @activeNode = @tagStack[@tagStack.length-1].node
                 else
@@ -345,7 +346,15 @@ class Smiley
         pattern.replace(/([\\\[\]^${}.?+*()-])/g, '\\$1')
       @regexp = new RegExp(patterns.join('|'), 'g')
     if @emoji?
-      @replacement = @emoji
+      if typeof @emoji == 'number'
+        if @emoji > 0xFFFF
+          high = Math.floor((@emoji - 0x10000) / 0x400) + 0xD800
+          low = (@emoji - 0x10000) % 0x400 + 0xDC00
+          @replacement = String.fromCharCode(high) + String.fromCharCode(low)
+        else
+          @replacement = String.fromCharCode(@emoji)
+      else
+        @replacement = @emoji
     else
       @replacement = "(oops)"
   replace: (text) ->
@@ -378,9 +387,10 @@ class BBCodeParser
     # How hard could this be? Well, Apple fucks up WHITE SMILING FACE (IMHO),
     # so instead I'm going to go with SMILING FACE WITH SMILING EYES.
     # (Aren't these names weird?)
-    new Smiley({"title": "Smile", "emoji": "\uD83D\uDE0A", "match": ":-?\\)"})
-    new Smiley({"title": "Sad", "emoji": "\uD83D\uDE22", "match": ":-?\\("})
-    new Smiley({"title": "Cool", "emoji": "\uD83D\uDE0E", "match": "8-?\\)"})
+    new Smiley({"title": "Smile", "emoji": 0x1F60A, "match": ":-?\\)"})
+    new Smiley({"title": "Big Grin", "emoji": 0x1F601, "match": ":-?D"})
+    new Smiley({"title": "Sad", "emoji": 0x1F622, "match": ":-?\\("})
+    new Smiley({"title": "Cool", "emoji": 0x1F60E, "match": "8-?\\)"})
   ]
 
   # Sets whether or not to use &lt;em&gt; and &lt;strong&gt; instead of

@@ -21,6 +21,22 @@ describe "BBCode parser", ->
         expect(text).toBe "<p><b>Test</b></p>"
         text = bbcode.bbcode "[B]Test[/B]"
         expect(text).toBe "<p><b>Test</b></p>"
+    it "handles nesting correctly", ->
+      runs ->
+        text = bbcode.bbcode "[b][i]Test[/i][/b]"
+        expect(text).toBe "<p><b><i>Test</i></b></p>"
+    it "handles tags over multiple lines", ->
+      runs ->
+        text = bbcode.bbcode """
+          [b]Bold this text
+          [i]Bold and italicize this text
+          [/i][/b]
+        """
+        expect(text).toBe """
+          <p><b>Bold this text<br>
+          <i>Bold and italicize this text<br>
+          </i></b></p>
+        """
 
   describe "when handling [url] tags", ->
     it "ignores tags without URLs in them", ->
