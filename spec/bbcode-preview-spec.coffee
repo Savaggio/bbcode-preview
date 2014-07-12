@@ -151,11 +151,18 @@ describe "BBCode preview package", ->
         preview = previewPane.getActiveItem()
         BBCodePreviewView::renderBBCode.reset()
 
-    it "closes the existing preview when toggle is triggered a second time", ->
+    it "closes the existing preview when toggle is triggered a second time on the editor", ->
       atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
 
       [editorPane, previewPane] = atom.workspaceView.getPaneViews()
       expect(editorPane).toHaveFocus()
+      expect(previewPane?.activeItem).toBeUndefined()
+
+    it "closes the existing preview when toggle is triggered on it and it has focus", ->
+      previewPane.focus()
+      atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
+
+      [editorPane, previewPane] = atom.workspaceView.getPaneViews()
       expect(previewPane?.activeItem).toBeUndefined()
 
     describe "when the editor is modified", ->
@@ -168,6 +175,7 @@ describe "BBCode preview package", ->
             atom.workspace.open()
 
           runs ->
+            BBCodePreviewView::renderBBCode.reset()
             bbcodeEditor.setText("Hey!")
 
           waitsFor ->
@@ -179,14 +187,16 @@ describe "BBCode preview package", ->
 
       describe "when the preview is not the active item and not in the active pane", ->
         it "re-renders the preview and makes it active", ->
+          bbcodeEditor = atom.workspace.getActiveEditor()
           previewPane.focus()
 
           waitsForPromise ->
             atom.workspace.open()
 
           runs ->
+            BBCodePreviewView::renderBBCode.reset()
             editorPane.focus()
-            atom.workspace.getActiveEditor().setText("Hey!")
+            bbcodeEditor.setText("Hey!")
 
           waitsFor ->
             BBCodePreviewView::renderBBCode.callCount > 0

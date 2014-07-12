@@ -7,33 +7,6 @@ fs = require 'fs-plus'
 
 bbcode = require './bbcode'
 
-# Come to think of it, BBCode SHOULDN'T resolve images. So don't.
-# # Custom img tag handler
-# class ResolvingImgTag
-#   @nests: false
-#   @basePath: null
-#
-#   setBasePath: (basePath) ->
-#     @basePath = if basePath? then path.dirname(basePath) else null
-#
-#   resolvePath: (htmlPath) ->
-#     if @basePath?
-#       if /^\w+:/.test(htmlPath)
-#         htmlPath
-#       else
-#         path.resolve(@basePath, htmlPath)
-#     else
-#       htmlPath
-#
-#   startTag: (name, arg) ->
-#     ""
-#
-#   endTag: ->
-#     ""
-#
-#   content: (text) ->
-#     '<img src="' + bbcode.bbcode.escapeHTMLAttr(@resolvePath(text)) + '">'
-
 module.exports =
 class BBCodePreviewView extends ScrollView
   @content: ->
@@ -212,3 +185,6 @@ class BBCodePreviewView extends ScrollView
 
       fs.writeFileSync(htmlFilePath, html)
       atom.workspace.open(htmlFilePath)
+
+  isEqual: (other) ->
+    @[0] is other?[0] # Compare DOM elements
