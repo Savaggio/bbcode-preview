@@ -13,3 +13,7 @@
   '.bbcode-preview':
     'Copy': 'core:copy'
     'Save As HTML\u2026': 'core:save-as'
+  '.tree-view .file .name[data-name$=\\.bbcode]':
+    'BBCode Preview': 'bbcode-preview:preview-file'
+  '.tree-view .file .name[data-name$=\\.txt]':
+    'BBCode Preview': 'bbcode-preview:preview-file'
