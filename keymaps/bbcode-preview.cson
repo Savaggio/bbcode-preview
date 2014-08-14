@@ -2,9 +2,16 @@
 #'.workspace':
 #  'ctrl-M': 'bbcode-preview:toggle'
 
-'.bbcode-preview':
+'.platform-darwin .bbcode-preview':
   'cmd-+': 'bbcode-preview:zoom-in'
   'cmd-=': 'bbcode-preview:zoom-in'
   'cmd--': 'bbcode-preview:zoom-out'
   'cmd-_': 'bbcode-preview:zoom-out'
   'cmd-0': 'bbcode-preview:reset-zoom'
+
+'.platform-win32 .markdown-preview, .platform-linux .markdown-preview':
+  'ctrl-+': 'bbcode-preview:zoom-in'
+  'ctrl-=': 'bbcode-preview:zoom-in'
+  'ctrl--': 'bbcode-preview:zoom-out'
+  'ctrl-_': 'bbcode-preview:zoom-out'
+  'ctrl-0': 'bbcode-preview:reset-zoom'

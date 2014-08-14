@@ -162,7 +162,7 @@ class BBCodePreviewView extends ScrollView
     selectedNode = selection.baseNode
 
     # Use default copy event handler if there is selected text inside this view
-    return false if selectedText and selectedNode? and $.contains(@[0], selectedNode)
+    return false if selectedText and selectedNode? and (@[0] is selectedNode or $.contains(@[0], selectedNode))
 
     atom.clipboard.write(@[0].innerHTML)
     true

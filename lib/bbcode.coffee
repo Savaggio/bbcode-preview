@@ -180,6 +180,43 @@ class TagTokenizer
         @currentOffset = idx
         return tok
 
+class HTMLBlock
+  constructor: (html, newlines, smileys) ->
+    @html = html
+    @newlines = newlines
+    @smileys = smileys
+
+  append: (block) ->
+    block.prev = this
+    @next = block
+
+  # Merge matching blocks together. If a block has identical transforms, it will
+  # be merged into a new, single block.
+  merge: ->
+    current = this
+    next = current.next
+    while next?
+      if current.newlines == next.newlines and current.smileys == next.smileys
+        current.html += next.html
+        # Remove the merged block from the list
+        current.next = next.next
+        current.next.prev = current
+      else
+        next = current.next
+
+  transform: (parser) ->
+    html = []
+    current = this
+    while current?
+      text = current.html
+      if current.newlines
+        text = convertNewlinesToHTML(text)
+      if current.smileys
+        text = parser.replaceSmileys(text)
+      html.push(text)
+      current = current.next
+    html.join('')
+
 # A node in a BBCode document.
 class BBNode
   constructor: ->
@@ -212,7 +249,13 @@ class BBNode
   appendText: (text) ->
     @appendChild(new BBText(text))
 
-  # Convert this node to HTML.
+  toBlock: ->
+
+
+  # Convert this node to HTML. Uses toBlock to deal with the actual
+  # transformation. Use toBlock instead of this method as it properly separates
+  # text into individual segments that indicate how newline handling should
+  # work within them.
   toHTML: ->
     # Assume all our children do something
     html = []
