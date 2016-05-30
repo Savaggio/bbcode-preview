@@ -45,7 +45,7 @@ render = (text, filePath, callback) ->
   text = text.replace(/^\s*<!doctype(\s+.*)?>\s*/i, '')
 
   # Main change: Swap out Roaster with BBCode.
-  html = bbcode.bbcode(text)
+  html = bbcode(text)
 
   html = sanitize(html)
   html = resolveImagePaths(html, filePath)
