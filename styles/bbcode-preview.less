@@ -1,0 +1,31 @@
+
+// Global BBCode Preview styles
+
+.bbcode-preview {
+  atom-text-editor {
+    // only show scrollbars on hover
+    .scrollbars-visible-always &::shadow {
+      .vertical-scrollbar,
+      .horizontal-scrollbar {
+        visibility: hidden;
+      }
+    }
+    .scrollbars-visible-always &:hover::shadow {
+      .vertical-scrollbar,
+      .horizontal-scrollbar {
+        visibility: visible;
+      }
+    }
+  }
+}
+
+.bbcode-spinner {
+  margin: auto;
+  // FIXME: Really shouldn't be using octocat for this
+  background-image: url(images/octocat-spinner-128.gif);
+  background-repeat: no-repeat;
+  background-size: 64px;
+  background-position: top center;
+  padding-top: 70px;
+  text-align: center;
+}

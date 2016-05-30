@@ -9,13 +9,47 @@
     "atom": "*"
   },
   "dependencies": {
+    "atom-space-pen-views": "^2.0.0",
     "cheerio": "0.15.0",
-    "fs-plus": "2.x",
-    "pathwatcher": "^2.0",
+    "fs-plus": "^2.0.0",
+    "grim": "^1.2.1",
+    "highlights": "^1.2",
     "roaster": "^1.1.2",
-    "temp": "0.6.x",
-    "underscore-plus": "1.x",
-    "wrench": "1.5.x",
-    "highlights": "0.13.0"
+    "temp": "^0.8.1",
+    "underscore-plus": "^1.0.0",
+    "wrench": "^1.5.0"
+  },
+  "devDependencies": {
+    "coffeelint": "^1.9.7"
+  },
+  "deserializers": {
+    "BBCodePreviewView": "createBBCodePreviewView"
+  },
+  "configSchema": {
+    "liveUpdate": {
+      "type": "boolean",
+      "default": true,
+      "description": "Re-render the preview as the contents of the source changes, without requiring the source buffer to be saved. If disabled, the preview is re-rendered only when the buffer is saved to disk."
+    },
+    "openPreviewInSplitPane": {
+      "type": "boolean",
+      "default": true,
+      "description": "Open the preview in a split pane. If disabled, the preview is opened in a new tab in the same pane."
+    },
+    "grammars": {
+      "type": "array",
+      "default": [
+        "text.md",
+        "text.plain",
+        "text.plain.null-grammar"
+      ],
+      "description": "List of scopes for languages for which previewing is enabled. See [this README](https://github.com/atom/spell-check#spell-check-package-) for more information on finding the correct scope for a specific language."
+    },
+    "useGitHubStyle": {
+      "title": "Use GitHub.com style",
+      "type": "boolean",
+      "default": false,
+      "description": "Use the same CSS styles for preview as the ones used on GitHub.com."
+    }
   }
 }

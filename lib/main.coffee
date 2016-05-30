@@ -1,47 +1,34 @@
 url = require 'url'
 fs = require 'fs-plus'
-{$} = require 'atom'
 
-BBCodePreviewView = null # Defer until used
-renderer = null # Defer until used
-
-createBBCodePreviewView = (state) ->
-  BBCodePreviewView ?= require './bbcode-preview-view'
-  new BBCodePreviewView(state)
+BBCodePreviewView = null
+renderer = null
 
 isBBCodePreviewView = (object) ->
   BBCodePreviewView ?= require './bbcode-preview-view'
   object instanceof BBCodePreviewView
 
-deserializer =
-  name: 'BBCodePreviewView'
-  deserialize: (state) ->
-    BBCodePreviewView(state) if state.constructor is Object
-atom.deserializers.add(deserializer)
-
 module.exports =
-  configDefaults:
-    breakOnSingleNewline: false
-    liveUpdate: true
-    grammars: [
-      'text.plain'
-      'text.plain.null-grammar'
-    ]
-
   activate: ->
-    atom.workspaceView.command 'bbcode-preview:toggle', =>
-      @toggle()
+    if parseFloat(atom.getVersion()) < 1.7
+      atom.deserializers.add
+        name: 'BBCodePreviewView'
+        deserialize: module.exports.createBBCodePreviewView.bind(module.exports)
 
-    atom.workspaceView.command 'bbcode-preview:copy-html', =>
-      @copyHtml()
+    atom.commands.add 'atom-workspace',
+      'bbcode-preview:toggle': =>
+        @toggle()
+      'bbcode-preview:copy-html': =>
+        @copyHtml()
+      'bbcode-preview:toggle-break-on-single-newline': ->
+        keyPath = 'bbcode-preview.breakOnSingleNewline'
+        atom.config.set(keyPath, not atom.config.get(keyPath))
 
-    atom.workspaceView.on 'bbcode-preview:preview-file', (event) =>
-      @previewFile(event)
+    previewFile = @previewFile.bind(this)
+    atom.commands.add '.tree-view .file .name[data-name$=\\.bbcode]', 'bbcode-preview:preview-file', previewFile
+    atom.commands.add '.tree-view .file .name[data-name$=\\.txt]', 'bbcode-preview:preview-file', previewFile
 
-    atom.workspaceView.command 'bbcode-preview:toggle-break-on-single-newline', ->
-      atom.config.toggle('bbcode-preview.breakOnSingleNewline')
-
-    atom.workspace.registerOpener (uriToOpen) ->
+    atom.workspace.addOpener (uriToOpen) =>
       try
         {protocol, host, pathname} = url.parse(uriToOpen)
       catch error
@@ -55,16 +42,21 @@ module.exports =
         return
 
       if host is 'editor'
-        createBBCodePreviewView(editorId: pathname.substring(1))
+        @createBBCodePreviewView(editorId: pathname.substring(1))
       else
-        createBBCodePreviewView(filePath: pathname)
+        @createBBCodePreviewView(filePath: pathname)
+
+  createBBCodePreviewView: (state) ->
+    if state.editorId or fs.isFileSync(state.filePath)
+      BBCodePreviewView ?= require './bbcode-preview-view'
+      new BBCodePreviewView(state)
 
   toggle: ->
-    if isBBCodePreviewView(atom.workspace.activePaneItem)
+    if isBBCodePreviewView(atom.workspace.getActivePaneItem())
       atom.workspace.destroyActivePaneItem()
       return
 
-    editor = atom.workspace.getActiveEditor()
+    editor = atom.workspace.getActiveTextEditor()
     return unless editor?
 
     grammars = atom.config.get('bbcode-preview.grammars') ? []
@@ -77,9 +69,9 @@ module.exports =
 
   removePreviewForEditor: (editor) ->
     uri = @uriForEditor(editor)
-    previewPane = atom.workspace.paneForUri(uri)
+    previewPane = atom.workspace.paneForURI(uri)
     if previewPane?
-      previewPane.destroyItem(previewPane.itemForUri(uri))
+      previewPane.destroyItem(previewPane.itemForURI(uri))
       true
     else
       false
@@ -87,25 +79,32 @@ module.exports =
   addPreviewForEditor: (editor) ->
     uri = @uriForEditor(editor)
     previousActivePane = atom.workspace.getActivePane()
-    atom.workspace.open(uri, split: 'right', searchAllPanes: true).done (bbcodePreviewView) ->
+    options =
+      searchAllPanes: true
+    if atom.config.get('bbcode-preview.openPreviewInSplitPane')
+      options.split = 'right'
+    atom.workspace.open(uri, options).then (bbcodePreviewView) ->
       if isBBCodePreviewView(bbcodePreviewView)
-        bbcodePreviewView.renderBBCode()
         previousActivePane.activate()
 
   previewFile: ({target}) ->
-    filePath = $(target).view()?.getPath?()
+    filePath = target.dataset.path
     return unless filePath
 
-    for editor in atom.workspace.getEditors() when editor.getPath() is filePath
+    for editor in atom.workspace.getTextEditors() when editor.getPath() is filePath
       @addPreviewForEditor(editor)
       return
 
     atom.workspace.open "bbcode-preview://#{encodeURI(filePath)}", searchAllPanes: true
 
   copyHtml: ->
-    editor = atom.workspace.getActiveEditor()
+    editor = atom.workspace.getActiveTextEditor()
     return unless editor?
 
-    renderer ?= require './bbcode'
+    renderer ?= require './renderer'
     text = editor.getSelectedText() or editor.getText()
-    atom.clipboard.write(renderer.bbcode(text))
+    renderer.toHTML text, editor.getPath(), editor.getGrammar(), (error, html) ->
+      if error
+        console.warn('Copying BBCode as HTML failed', error)
+      else
+        atom.clipboard.write(html)

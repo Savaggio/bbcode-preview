@@ -1,21 +1,22 @@
 path = require 'path'
-{WorkspaceView} = require 'atom'
 fs = require 'fs-plus'
 temp = require 'temp'
 wrench = require 'wrench'
 BBCodePreviewView = require '../lib/bbcode-preview-view'
 
 describe "BBCode preview package", ->
+  [workspaceElement, preview] = []
+
   beforeEach ->
     fixturesPath = path.join(__dirname, 'fixtures')
     tempPath = temp.mkdirSync('atom')
     wrench.copyDirSyncRecursive(fixturesPath, tempPath, forceDelete: true)
-    atom.project.setPath(tempPath)
-    jasmine.unspy(window, 'setTimeout')
+    atom.project.setPaths([tempPath])
 
-    atom.workspaceView = new WorkspaceView
-    atom.workspace = atom.workspaceView.model
-    spyOn(BBCodePreviewView.prototype, 'renderBBCode').andCallThrough()
+    jasmine.useRealClock()
+
+    workspaceElement = atom.views.getView(atom.workspace)
+    jasmine.attachToDOM(workspaceElement)
 
     waitsForPromise ->
       atom.packages.activatePackage("bbcode-preview")
@@ -23,267 +24,223 @@ describe "BBCode preview package", ->
     waitsForPromise ->
       atom.packages.activatePackage('language-gfm')
 
+  expectPreviewInSplitPane = ->
+    runs ->
+      expect(atom.workspace.getPanes()).toHaveLength 2
+
+    waitsFor "bbcode preview to be created", ->
+      preview = atom.workspace.getPanes()[1].getActiveItem()
+
+    runs ->
+      expect(preview).toBeInstanceOf(BBCodePreviewView)
+      expect(preview.getPath()).toBe atom.workspace.getActivePaneItem().getPath()
+
   describe "when a preview has not been created for the file", ->
-    beforeEach ->
-      atom.workspaceView.attachToDom()
-
-    it "splits the current pane to the right with a bbcode preview for the file", ->
-      waitsForPromise ->
-        atom.workspace.open("subdir/file.txt")
+    it "displays a bbcode preview in a split pane", ->
+      waitsForPromise -> atom.workspace.open("subdir/file.txt")
+      runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+      expectPreviewInSplitPane()
 
       runs ->
-        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
-
-      waitsFor ->
-        BBCodePreviewView::renderBBCode.callCount > 0
-
-      runs ->
-        expect(atom.workspaceView.getPaneViews()).toHaveLength 2
-        [editorPane, previewPane] = atom.workspaceView.getPaneViews()
-
-        expect(editorPane.items).toHaveLength 1
-        preview = previewPane.getActiveItem()
-        expect(preview).toBeInstanceOf(BBCodePreviewView)
-        expect(preview.getPath()).toBe atom.workspace.getActivePaneItem().getPath()
-        expect(editorPane).toHaveFocus()
+        [editorPane] = atom.workspace.getPanes()
+        expect(editorPane.getItems()).toHaveLength 1
+        expect(editorPane.isActive()).toBe true
 
     describe "when the editor's path does not exist", ->
       it "splits the current pane to the right with a bbcode preview for the file", ->
-        waitsForPromise ->
-          atom.workspace.open("new.txt")
-
-        runs ->
-          atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
-
-        waitsFor ->
-          BBCodePreviewView::renderBBCode.callCount > 0
-
-        runs ->
-          expect(atom.workspaceView.getPaneViews()).toHaveLength 2
-          [editorPane, previewPane] = atom.workspaceView.getPaneViews()
-
-          expect(editorPane.items).toHaveLength 1
-          preview = previewPane.getActiveItem()
-          expect(preview).toBeInstanceOf(BBCodePreviewView)
-          expect(preview.getPath()).toBe atom.workspace.getActivePaneItem().getPath()
-          expect(editorPane).toHaveFocus()
+        waitsForPromise -> atom.workspace.open("new.bbcode")
+        runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+        expectPreviewInSplitPane()
 
     describe "when the editor does not have a path", ->
       it "splits the current pane to the right with a bbcode preview for the file", ->
-        waitsForPromise ->
-          atom.workspace.open("")
-
-        runs ->
-          atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
-
-        waitsFor ->
-          BBCodePreviewView::renderBBCode.callCount > 0
-
-        runs ->
-          expect(atom.workspaceView.getPaneViews()).toHaveLength 2
-          [editorPane, previewPane] = atom.workspaceView.getPaneViews()
-
-          expect(editorPane.items).toHaveLength 1
-          preview = previewPane.getActiveItem()
-          expect(preview).toBeInstanceOf(BBCodePreviewView)
-          expect(preview.getPath()).toBe atom.workspace.getActivePaneItem().getPath()
-          expect(editorPane).toHaveFocus()
+        waitsForPromise -> atom.workspace.open("")
+        runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+        expectPreviewInSplitPane()
 
     describe "when the path contains a space", ->
       it "renders the preview", ->
-        waitsForPromise ->
-          atom.workspace.open("subdir/file with space.txt")
-
-        runs ->
-          atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
-
-        waitsFor ->
-          BBCodePreviewView::renderBBCode.callCount > 0
-
-        runs ->
-          expect(atom.workspaceView.getPaneViews()).toHaveLength 2
-          [editorPane, previewPane] = atom.workspaceView.getPaneViews()
-
-          expect(editorPane.items).toHaveLength 1
-          preview = previewPane.getActiveItem()
-          expect(preview).toBeInstanceOf(BBCodePreviewView)
-          expect(preview.getPath()).toBe atom.workspace.getActivePaneItem().getPath()
-          expect(editorPane).toHaveFocus()
+        waitsForPromise -> atom.workspace.open("subdir/file with space.md")
+        runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+        expectPreviewInSplitPane()
 
     describe "when the path contains accented characters", ->
       it "renders the preview", ->
-        waitsForPromise ->
-          atom.workspace.open("subdir/áccéntéd.txt")
-
-        runs ->
-          atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
-
-        waitsFor ->
-          BBCodePreviewView::renderBBCode.callCount > 0
-
-        runs ->
-          expect(atom.workspaceView.getPaneViews()).toHaveLength 2
-          [editorPane, previewPane] = atom.workspaceView.getPaneViews()
-
-          expect(editorPane.items).toHaveLength 1
-          preview = previewPane.getActiveItem()
-          expect(preview).toBeInstanceOf(BBCodePreviewView)
-          expect(preview.getPath()).toBe atom.workspace.getActivePaneItem().getPath()
-          expect(editorPane).toHaveFocus()
+        waitsForPromise -> atom.workspace.open("subdir/áccéntéd.md")
+        runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+        expectPreviewInSplitPane()
 
   describe "when a preview has been created for the file", ->
-    [editorPane, previewPane, preview] = []
-
     beforeEach ->
-      atom.workspaceView.attachToDom()
-
-      waitsForPromise ->
-        atom.workspace.open("subdir/file.txt")
-
-      runs ->
-        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
-
-      waitsFor ->
-        BBCodePreviewView::renderBBCode.callCount > 0
-
-      runs ->
-        [editorPane, previewPane] = atom.workspaceView.getPaneViews()
-        preview = previewPane.getActiveItem()
-        BBCodePreviewView::renderBBCode.reset()
+      waitsForPromise -> atom.workspace.open("subdir/file.bbcode")
+      runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+      expectPreviewInSplitPane()
 
     it "closes the existing preview when toggle is triggered a second time on the editor", ->
-      atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
+      atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
 
-      [editorPane, previewPane] = atom.workspaceView.getPaneViews()
-      expect(editorPane).toHaveFocus()
-      expect(previewPane?.activeItem).toBeUndefined()
+      [editorPane, previewPane] = atom.workspace.getPanes()
+      expect(editorPane.isActive()).toBe true
+      expect(previewPane.getActiveItem()).toBeUndefined()
 
     it "closes the existing preview when toggle is triggered on it and it has focus", ->
-      previewPane.focus()
-      atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
+      [editorPane, previewPane] = atom.workspace.getPanes()
+      previewPane.activate()
 
-      [editorPane, previewPane] = atom.workspaceView.getPaneViews()
-      expect(previewPane?.activeItem).toBeUndefined()
+      atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+      expect(previewPane.getActiveItem()).toBeUndefined()
 
     describe "when the editor is modified", ->
+      it "re-renders the preview", ->
+        spyOn(preview, 'showLoading')
+
+        bbcodeEditor = atom.workspace.getActiveTextEditor()
+        bbcodeEditor.setText "Hey!"
+
+        waitsFor ->
+          preview.text().indexOf("Hey!") >= 0
+
+        runs ->
+          expect(preview.showLoading).not.toHaveBeenCalled()
+
+      it "invokes ::onDidChangeBBCode listeners", ->
+        bbcodeEditor = atom.workspace.getActiveTextEditor()
+        preview.onDidChangeBBCode(listener = jasmine.createSpy('didChangeBBCodeListener'))
+
+        runs ->
+          bbcodeEditor.setText("Hey!")
+
+        waitsFor "::onDidChangeBBCode handler to be called", ->
+          listener.callCount > 0
+
       describe "when the preview is in the active pane but is not the active item", ->
         it "re-renders the preview but does not make it active", ->
-          bbcodeEditor = atom.workspace.getActiveEditor()
-          previewPane.focus()
+          bbcodeEditor = atom.workspace.getActiveTextEditor()
+          previewPane = atom.workspace.getPanes()[1]
+          previewPane.activate()
 
           waitsForPromise ->
             atom.workspace.open()
 
           runs ->
-            BBCodePreviewView::renderBBCode.reset()
             bbcodeEditor.setText("Hey!")
 
           waitsFor ->
-            BBCodePreviewView::renderBBCode.callCount > 0
+            preview.text().indexOf("Hey!") >= 0
 
           runs ->
-            expect(previewPane).toHaveFocus()
+            expect(previewPane.isActive()).toBe true
             expect(previewPane.getActiveItem()).not.toBe preview
 
       describe "when the preview is not the active item and not in the active pane", ->
         it "re-renders the preview and makes it active", ->
-          bbcodeEditor = atom.workspace.getActiveEditor()
-          previewPane.focus()
+          bbcodeEditor = atom.workspace.getActiveTextEditor()
+          [editorPane, previewPane] = atom.workspace.getPanes()
+          previewPane.splitRight(copyActiveItem: true)
+          previewPane.activate()
 
           waitsForPromise ->
             atom.workspace.open()
 
           runs ->
-            BBCodePreviewView::renderBBCode.reset()
-            editorPane.focus()
+            editorPane.activate()
             bbcodeEditor.setText("Hey!")
 
           waitsFor ->
-            BBCodePreviewView::renderBBCode.callCount > 0
+            preview.text().indexOf("Hey!") >= 0
 
           runs ->
-            expect(editorPane).toHaveFocus()
+            expect(editorPane.isActive()).toBe true
             expect(previewPane.getActiveItem()).toBe preview
 
       describe "when the liveUpdate config is set to false", ->
         it "only re-renders the bbcode when the editor is saved, not when the contents are modified", ->
           atom.config.set 'bbcode-preview.liveUpdate', false
 
-          contentsModifiedHandler = jasmine.createSpy('contents-modified')
-          atom.workspace.getActiveEditor().getBuffer().on 'contents-modified', contentsModifiedHandler
-          atom.workspace.getActiveEditor().setText('ch ch changes')
+          didStopChangingHandler = jasmine.createSpy('didStopChangingHandler')
+          atom.workspace.getActiveTextEditor().getBuffer().onDidStopChanging didStopChangingHandler
+          atom.workspace.getActiveTextEditor().setText('ch ch changes')
 
           waitsFor ->
-            contentsModifiedHandler.callCount > 0
+            didStopChangingHandler.callCount > 0
 
           runs ->
-            expect(BBCodePreviewView::renderBBCode.callCount).toBe 0
-            atom.workspace.getActiveEditor().save()
-            expect(BBCodePreviewView::renderBBCode.callCount).toBe 1
+            expect(preview.text()).not.toContain("ch ch changes")
+            atom.workspace.getActiveTextEditor().save()
+
+          waitsFor ->
+            preview.text().indexOf("ch ch changes") >= 0
 
     describe "when a new grammar is loaded", ->
       it "re-renders the preview", ->
+        atom.workspace.getActiveTextEditor().setText """
+          ```javascript
+          var x = y;
+          ```
+        """
+
+        waitsFor "bbcode to be rendered after its text changed", ->
+          preview.find("atom-text-editor").data("grammar") is "text plain null-grammar"
+
+        grammarAdded = false
+        runs ->
+          atom.grammars.onDidAddGrammar -> grammarAdded = true
+
         waitsForPromise ->
+          expect(atom.packages.isPackageActive('language-javascript')).toBe false
           atom.packages.activatePackage('language-javascript')
 
-        waitsFor ->
-          BBCodePreviewView::renderBBCode.callCount > 0
+        waitsFor "grammar to be added", -> grammarAdded
+
+        waitsFor "bbcode to be rendered after grammar was added", ->
+          preview.find("atom-text-editor").data("grammar") isnt "source js"
 
   describe "when the bbcode preview view is requested by file URI", ->
     it "opens a preview editor and watches the file for changes", ->
       waitsForPromise "atom.workspace.open promise to be resolved", ->
-        atom.workspace.open("bbcode-preview://#{atom.project.resolve('subdir/file.txt')}")
+        atom.workspace.open("bbcode-preview://#{atom.project.getDirectories()[0].resolve('subdir/file.bbcode')}")
 
       runs ->
-        expect(BBCodePreviewView::renderBBCode.callCount).toBeGreaterThan 0
         preview = atom.workspace.getActivePaneItem()
         expect(preview).toBeInstanceOf(BBCodePreviewView)
 
-        BBCodePreviewView::renderBBCode.reset()
-        preview.file.emit('contents-changed')
+        spyOn(preview, 'renderBBCodeText')
+        preview.file.emitter.emit('did-change')
 
-      waitsFor "renderBBCode to be called", ->
-        BBCodePreviewView::renderBBCode.callCount > 0
+      waitsFor "bbcode to be re-rendered after file changed", ->
+        preview.renderBBCodeText.callCount > 0
 
   describe "when the editor's grammar it not enabled for preview", ->
     it "does not open the bbcode preview", ->
       atom.config.set('bbcode-preview.grammars', [])
-
-      atom.workspaceView.attachToDom()
 
       waitsForPromise ->
         atom.workspace.open("subdir/file.txt")
 
       runs ->
         spyOn(atom.workspace, 'open').andCallThrough()
-        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
+        atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
         expect(atom.workspace.open).not.toHaveBeenCalled()
 
-  describe "when the editor's path changes", ->
+  describe "when the editor's path changes on #win32 and #darwin", ->
     it "updates the preview's title", ->
       titleChangedCallback = jasmine.createSpy('titleChangedCallback')
 
-      waitsForPromise ->
-        atom.workspace.open("subdir/file.txt")
+      waitsForPromise -> atom.workspace.open("subdir/file.bbcode")
+      runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+
+      expectPreviewInSplitPane()
 
       runs ->
-        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
+        expect(preview.getTitle()).toBe 'file.bbcode Preview'
+        preview.onDidChangeTitle(titleChangedCallback)
+        fs.renameSync(atom.workspace.getActiveTextEditor().getPath(), path.join(path.dirname(atom.workspace.getActiveTextEditor().getPath()), 'file2.md'))
 
       waitsFor ->
-        BBCodePreviewView::renderBBCode.callCount > 0
+        preview.getTitle() is "file2.md Preview"
 
       runs ->
-        [editorPane, previewPane] = atom.workspaceView.getPaneViews()
-        preview = previewPane.getActiveItem()
-        expect(preview.getTitle()).toBe 'file.txt Preview'
-
-        titleChangedCallback.reset()
-        preview.one('title-changed', titleChangedCallback)
-        fs.renameSync(atom.workspace.getActiveEditor().getPath(), path.join(path.dirname(atom.workspace.getActiveEditor().getPath()), 'file2.txt'))
-
-      waitsFor ->
-        titleChangedCallback.callCount is 1
-
+        expect(titleChangedCallback).toHaveBeenCalled()
 
   describe "when the URI opened does not have a bbcode-preview protocol", ->
     it "does not throw an error trying to decode the URI (regression)", ->
@@ -291,7 +248,7 @@ describe "BBCode preview package", ->
         atom.workspace.open('%')
 
       runs ->
-        expect(atom.workspace.getActiveEditor()).toBeTruthy()
+        expect(atom.workspace.getActiveTextEditor()).toBeTruthy()
 
   describe "when bbcode-preview:copy-html is triggered", ->
     it "copies the HTML to the clipboard", ->
@@ -299,7 +256,7 @@ describe "BBCode preview package", ->
         atom.workspace.open("subdir/simple.txt")
 
       runs ->
-        atom.workspaceView.getActiveView().trigger 'bbcode-preview:copy-html'
+        atom.commands.dispatch workspaceElement, 'bbcode-preview:copy-html'
         expect(atom.clipboard.read()).toBe """
           <p><i>italic</i></p>
 
@@ -308,26 +265,56 @@ describe "BBCode preview package", ->
           <p>encoding \u2192 issue</p>
         """
 
-        atom.workspace.getActiveEditor().setSelectedBufferRange [[0, 0], [1, 0]]
-        atom.workspaceView.getActiveView().trigger 'bbcode-preview:copy-html'
+        atom.workspace.getActiveTextEditor().setSelectedBufferRange [[0, 0], [1, 0]]
+        atom.commands.dispatch workspaceElement, 'bbcode-preview:copy-html'
         expect(atom.clipboard.read()).toBe """
           <p><i>italic</i></p>
         """
 
+    describe "code block tokenization", ->
+      preview = null
+
+      beforeEach ->
+        waitsForPromise ->
+          atom.packages.activatePackage('language-ruby')
+
+        waitsForPromise ->
+          atom.packages.activatePackage('bbcode-preview')
+
+        waitsForPromise ->
+          atom.workspace.open("subdir/file.bbcode")
+
+        runs ->
+          workspaceElement = atom.views.getView(atom.workspace)
+          atom.commands.dispatch workspaceElement, 'bbcode-preview:copy-html'
+          preview = $('<div>').append(atom.clipboard.read())
+
+      describe "when the code block's fence name has a matching grammar", ->
+        it "tokenizes the code block with the grammar", ->
+          expect(preview.find("pre span.entity.name.function.ruby")).toExist()
+
+      describe "when the code block's fence name doesn't have a matching grammar", ->
+        it "does not tokenize the code block", ->
+          expect(preview.find("pre.lang-kombucha .line .null-grammar").children().length).toBe 2
+
+      describe "when the code block contains empty lines", ->
+        it "doesn't remove the empty lines", ->
+          expect(preview.find("pre.lang-python").children().length).toBe 6
+          expect(preview.find("pre.lang-python div:nth-child(2)").text().trim()).toBe ''
+          expect(preview.find("pre.lang-python div:nth-child(4)").text().trim()).toBe ''
+          expect(preview.find("pre.lang-python div:nth-child(5)").text().trim()).toBe ''
+
+      describe "when the code block is nested in a list", ->
+        it "detects and styles the block", ->
+          expect(preview.find("pre.lang-javascript")).toHaveClass 'editor-colors'
+
   describe "sanitization", ->
     it "removes script tags and attributes that commonly contain inline scripts", ->
-      waitsForPromise ->
-        atom.workspace.open("subdir/evil.txt")
+      waitsForPromise -> atom.workspace.open("subdir/evil.md")
+      runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+      expectPreviewInSplitPane()
 
       runs ->
-        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
-
-      waitsFor ->
-        BBCodePreviewView::renderBBCode.callCount > 0
-
-      runs ->
-        [editorPane, previewPane] = atom.workspaceView.getPaneViews()
-        preview = previewPane.getActiveItem()
         expect(preview[0].innerHTML).toBe """
           <p>hello<br>
           &lt;script src="index.js"&gt;&lt;/script&gt;<br>
@@ -336,18 +323,81 @@ describe "BBCode preview package", ->
           world</p>
         """
 
+    it "remove the first <!doctype> tag at the beginning of the file", ->
+      waitsForPromise -> atom.workspace.open("subdir/doctype-tag.md")
+      runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+      expectPreviewInSplitPane()
+
+      runs ->
+        expect(preview[0].innerHTML).toBe """
+          <p>content
+          &lt;!doctype html&gt;</p>
+        """
+
   describe "when the bbcode contains an <html> tag", ->
     it "does not throw an exception", ->
+      waitsForPromise -> atom.workspace.open("subdir/html-tag.md")
+      runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+      expectPreviewInSplitPane()
+
+      runs -> expect(preview[0].innerHTML).toBe "content"
+
+  describe "when the bbcode contains a <pre> tag", ->
+    it "does not throw an exception", ->
+      waitsForPromise -> atom.workspace.open("subdir/pre-tag.md")
+      runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+      expectPreviewInSplitPane()
+
+      runs -> expect(preview.find('atom-text-editor')).toExist()
+
+  describe "when there is an image with a relative path and no directory", ->
+    it "does not alter the image src", ->
+      atom.project.removePath(projectPath) for projectPath in atom.project.getPaths()
+
+      filePath = path.join(temp.mkdirSync('atom'), 'bar.md')
+      fs.writeFileSync(filePath, "![rel path](/foo.png)")
+
       waitsForPromise ->
-        atom.workspace.open("subdir/html-tag.txt")
+        atom.workspace.open(filePath)
+
+      runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+      expectPreviewInSplitPane()
 
       runs ->
-        atom.workspaceView.getActiveView().trigger 'bbcode-preview:toggle'
+        expect(preview[0].innerHTML).toBe """
+          <p><img src="/foo.png" alt="rel path"></p>
+        """
 
-      waitsFor ->
-        BBCodePreviewView::renderBBCode.callCount > 0
+  describe "GitHub style bbcode preview", ->
+    beforeEach ->
+      atom.config.set 'bbcode-preview.useGitHubStyle', false
+
+    it "renders bbcode using the default style when GitHub styling is disabled", ->
+      waitsForPromise -> atom.workspace.open("subdir/simple.md")
+      runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+      expectPreviewInSplitPane()
+
+      runs -> expect(preview.element.getAttribute('data-use-github-style')).toBeNull()
+
+    it "renders bbcode using the GitHub styling when enabled", ->
+      atom.config.set 'bbcode-preview.useGitHubStyle', true
+
+      waitsForPromise -> atom.workspace.open("subdir/simple.md")
+      runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+      expectPreviewInSplitPane()
+
+      runs -> expect(preview.element.getAttribute('data-use-github-style')).toBe ''
+
+    it "updates the rendering style immediately when the configuration is changed", ->
+      waitsForPromise -> atom.workspace.open("subdir/simple.md")
+      runs -> atom.commands.dispatch workspaceElement, 'bbcode-preview:toggle'
+      expectPreviewInSplitPane()
 
       runs ->
-        [editorPane, previewPane] = atom.workspaceView.getPaneViews()
-        preview = previewPane.getActiveItem()
-        expect(preview[0].innerHTML).toBe "<p>&lt;html&gt;content&lt;/html&gt;</p>"
+        expect(preview.element.getAttribute('data-use-github-style')).toBeNull()
+
+        atom.config.set 'bbcode-preview.useGitHubStyle', true
+        expect(preview.element.getAttribute('data-use-github-style')).not.toBeNull()
+
+        atom.config.set 'bbcode-preview.useGitHubStyle', false
+        expect(preview.element.getAttribute('data-use-github-style')).toBeNull()

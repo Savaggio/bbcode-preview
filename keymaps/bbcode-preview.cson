@@ -1,5 +1,5 @@
 # I don't have a good idea for a global key binding yet
-#'.workspace':
+#'atom-workspace, atom-workspace atom-text-editor':
 #  'ctrl-M': 'bbcode-preview:toggle'
 
 '.platform-darwin .bbcode-preview':
