@@ -33,7 +33,7 @@ exports.toHTML = (text='', filePath, grammar, callback) ->
     callback(null, html)
 
 render = (text, filePath, callback) ->
-  bbcode ?= require 'bbcode'
+  bbcode ?= require 'bitter-bbcode'
   # TODO: Support some options. Likely things involve forums-specific BBCode
   # enhancements.
   #options =
