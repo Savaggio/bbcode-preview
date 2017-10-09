@@ -10,16 +10,13 @@ isBBCodePreviewView = (object) ->
 
 module.exports =
   activate: ->
-    if parseFloat(atom.getVersion()) < 1.7
-      atom.deserializers.add
-        name: 'BBCodePreviewView'
-        deserialize: module.exports.createBBCodePreviewView.bind(module.exports)
-
     atom.commands.add 'atom-workspace',
       'bbcode-preview:toggle': =>
         @toggle()
       'bbcode-preview:copy-html': =>
         @copyHtml()
+      'bbcode-preview:save-as-html': =>
+        @saveAsHtml()
       'bbcode-preview:toggle-break-on-single-newline': ->
         keyPath = 'bbcode-preview.breakOnSingleNewline'
         atom.config.set(keyPath, not atom.config.get(keyPath))
@@ -29,22 +26,18 @@ module.exports =
     atom.commands.add '.tree-view .file .name[data-name$=\\.txt]', 'bbcode-preview:preview-file', previewFile
 
     atom.workspace.addOpener (uriToOpen) =>
-      try
-        {protocol, host, pathname} = url.parse(uriToOpen)
-      catch error
-        return
-
-      return unless protocol is 'bbcode-preview:'
+      [protocol, path] = uriToOpen.split('://')
+      return unless protocol is 'bbcode-preview'
 
       try
-        pathname = decodeURI(pathname) if pathname
-      catch error
+        path = decodeURI(path)
+      catch
         return
 
-      if host is 'editor'
-        @createBBCodePreviewView(editorId: pathname.substring(1))
+      if path.startsWith 'editor/'
+        @createBBCodePreviewView(editorId: path.substring(7))
       else
-        @createBBCodePreviewView(filePath: pathname)
+        @createBBCodePreviewView(filePath: path)
 
   createBBCodePreviewView: (state) ->
     if state.editorId or fs.isFileSync(state.filePath)
@@ -108,3 +101,27 @@ module.exports =
         console.warn('Copying BBCode as HTML failed', error)
       else
         atom.clipboard.write(html)
+
+  saveAsHtml: ->
+    activePane = atom.workspace.getActivePaneItem()
+    if isBBCodePreviewView(activePane)
+      activePane.saveAs()
+      return
+
+    editor = atom.workspace.getActiveTextEditor()
+    return unless editor?
+
+    grammars = atom.config.get('bbcode-preview.grammars') ? []
+    return unless editor.getGrammar().scopeName in grammars
+
+    uri = @uriForEditor(editor)
+    bbcodePreviewPane = atom.workspace.paneForURI(uri)
+    return unless bbcodePreviewPane?
+
+    previousActivePane = atom.workspace.getActivePane()
+    bbcodePreviewPane.activate()
+    activePane = atom.workspace.getActivePaneItem()
+
+    if isBBCodePreviewView(activePane)
+      activePane.saveAs().then ->
+        previousActivePane.activate()

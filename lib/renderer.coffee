@@ -3,7 +3,6 @@ _ = require 'underscore-plus'
 cheerio = require 'cheerio'
 fs = require 'fs-plus'
 Highlights = require 'highlights'
-{$} = require 'atom-space-pen-views'
 bbcode = null # Defer until used
 {scopeForFenceName} = require './extension-helper'
 
@@ -119,11 +118,16 @@ convertCodeBlocksToAtomEditors = (domFragment, defaultLanguage='text') ->
     preElement.remove()
 
     editor = editorElement.getModel()
-    # remove the default selection of a line in each editor
-    editor.getDecorations(class: 'cursor-line', type: 'line')[0].destroy()
-    editor.setText(codeBlock.textContent.trim())
+    editor.setText(codeBlock.textContent)
     if grammar = atom.grammars.grammarForScopeName(scopeForFenceName(fenceName))
       editor.setGrammar(grammar)
+
+    # Remove line decorations from code blocks.
+    if editor.cursorLineDecorations?
+      for cursorLineDecoration in editor.cursorLineDecorations
+        cursorLineDecoration.destroy()
+    else
+      editor.getDecorations(class: 'cursor-line', type: 'line')[0].destroy()
 
   domFragment
 
@@ -137,7 +141,7 @@ tokenizeCodeBlocks = (html, defaultLanguage='text') ->
     codeBlock = o(preElement).children().first()
     fenceName = codeBlock.attr('class')?.replace(/^lang-/, '') ? defaultLanguage
 
-    highlighter ?= new Highlights(registry: atom.grammars)
+    highlighter ?= new Highlights(registry: atom.grammars, scopePrefix: 'syntax--')
     highlightedHtml = highlighter.highlightSync
       fileContents: codeBlock.text()
       scopeName: scopeForFenceName(fenceName)
